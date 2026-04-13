@@ -1,0 +1,268 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Habits</ion-title>
+    <ion-buttons slot="end">
+      <ion-note class="sync-note" *ngIf="generatedAt">Synced {{ generatedAt }}</ion-note>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Habits</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <!-- Loading -->
+  <div class="loading-container" *ngIf="loading">
+    <ion-spinner name="crescent"></ion-spinner>
+  </div>
+
+  <!-- Error -->
+  <div class="error-container" *ngIf="error">
+    <ion-icon name="warning-outline" size="large"></ion-icon>
+    <p>Could not load habit data. Run <code>node scripts/generate-habit-data.js</code> to generate it.</p>
+  </div>
+
+  <!-- Content -->
+  <div class="habits-content" *ngIf="!loading && !error && data">
+
+    <!-- ── TODAY SECTION ─────────────────────────────────────────── -->
+    <section class="section">
+      <h2 class="section-title">Today</h2>
+
+      <div class="today-grid">
+        <div
+          class="habit-card"
+          *ngFor="let cfg of config"
+          [class]="'habit-card--' + getProgressClass(getTodayEntry(cfg.id)?.status ?? null)"
+        >
+          <div class="habit-card__icon" [style.color]="cfg.color">
+            <ion-icon [name]="cfg.icon"></ion-icon>
+          </div>
+
+          <div class="habit-card__body">
+            <div class="habit-card__name">{{ cfg.name }}</div>
+            <div class="habit-card__value">
+              {{ getTodayEntry(cfg.id)?.displayValue ?? '—' }}
+            </div>
+            <div class="habit-card__target">
+              {{ cfg.direction === 'below' ? 'limit' : 'goal' }}: {{ formatTarget(cfg) }}
+            </div>
+
+            <!-- Progress bar -->
+            <div class="progress-track" *ngIf="getTodayEntry(cfg.id)?.progress !== null">
+              <div
+                class="progress-fill"
+                [style.width.%]="getTodayEntry(cfg.id)?.progress"
+                [style.background]="cfg.color"
+              ></div>
+            </div>
+            <div class="progress-track progress-track--empty" *ngIf="getTodayEntry(cfg.id)?.progress === null || getTodayEntry(cfg.id) === null">
+              <div class="progress-fill progress-fill--empty"></div>
+            </div>
+          </div>
+
+          <div class="habit-card__status">
+            <ion-badge
+              *ngIf="getTodayEntry(cfg.id)?.status === 'hit'"
+              color="success"
+            >HIT</ion-badge>
+            <ion-badge
+              *ngIf="getTodayEntry(cfg.id)?.status === 'miss'"
+              color="danger"
+            >MISS</ion-badge>
+            <ion-badge
+              *ngIf="!getTodayEntry(cfg.id)?.status"
+              color="medium"
+            >—</ion-badge>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── STREAKS SECTION ───────────────────────────────────────── -->
+    <section class="section">
+      <h2 class="section-title">Streaks</h2>
+
+      <div class="streaks-grid">
+        <div class="streak-card" *ngFor="let cfg of config">
+          <div class="streak-card__label">{{ cfg.name }}</div>
+          <div class="streak-card__current">
+            <span class="streak-number">{{ getStreakInfo(cfg.id).current }}</span>
+            <span class="streak-unit">day{{ getStreakInfo(cfg.id).current !== 1 ? 's' : '' }}</span>
+          </div>
+          <div class="streak-card__best">
+            Best: {{ getStreakInfo(cfg.id).best }} day{{ getStreakInfo(cfg.id).best !== 1 ? 's' : '' }}
+          </div>
+          <div class="streak-card__fire" *ngIf="getStreakInfo(cfg.id).current >= 3">🔥</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── HISTORY SECTION ───────────────────────────────────────── -->
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">History ({{ last30.length }} days)</h2>
+
+        <!-- Habit selector -->
+        <div class="view-toggles" *ngIf="historyView !== 'table'">
+          <button
+            class="toggle-btn"
+            *ngFor="let cfg of config"
+            [class.active]="selectedHabitId === cfg.id"
+            (click)="selectHabit(cfg.id)"
+            [style.--accent]="cfg.color"
+          >{{ cfg.name }}</button>
+        </div>
+
+        <!-- View toggles -->
+        <div class="view-toggles">
+          <button class="toggle-btn" [class.active]="historyView === 'bar'" (click)="setHistoryView('bar')">
+            <ion-icon name="bar-chart-outline"></ion-icon> Bar
+          </button>
+          <button class="toggle-btn" [class.active]="historyView === 'line'" (click)="setHistoryView('line')">
+            <ion-icon name="trending-up-outline"></ion-icon> Line
+          </button>
+          <button class="toggle-btn" [class.active]="historyView === 'table'" (click)="setHistoryView('table')">
+            <ion-icon name="list-outline"></ion-icon> Table
+          </button>
+        </div>
+      </div>
+
+      <!-- Bar chart -->
+      <div class="chart-container" *ngIf="historyView === 'bar'">
+        <div class="target-line" title="100% = target met"></div>
+        <div class="bar-chart">
+          <div
+            class="bar-col"
+            *ngFor="let d of chartData"
+            [title]="d.label + ': ' + (d.value !== null ? d.value : 'no data')"
+          >
+            <div
+              class="bar"
+              [style.height.%]="barHeight(d.progress)"
+              [class.bar--hit]="d.status === 'hit'"
+              [class.bar--miss]="d.status === 'miss'"
+              [class.bar--empty]="d.status === null"
+              [style.background]="d.status === 'hit' ? selectedConfig?.color : undefined"
+            ></div>
+            <div class="bar-label">{{ d.label.split(' ')[1] }}</div>
+          </div>
+        </div>
+        <div class="chart-legend">
+          <span class="legend-hit">Hit</span>
+          <span class="legend-miss">Miss</span>
+          <span class="legend-empty">No data</span>
+        </div>
+      </div>
+
+      <!-- Line chart (SVG) -->
+      <div class="chart-container chart-container--line" *ngIf="historyView === 'line'">
+        <div class="line-chart-wrap">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" class="line-svg">
+            <!-- Target line at y=0 (100% means target met) -->
+            <line x1="0" y1="0" x2="100" y2="0" stroke="rgba(255,255,255,0.15)" stroke-width="0.5" stroke-dasharray="2,2"/>
+            <polyline
+              *ngIf="linePoints()"
+              [attr.points]="linePoints()"
+              fill="none"
+              [attr.stroke]="selectedConfig?.color ?? '#6366f1'"
+              stroke-width="1.5"
+              stroke-linejoin="round"
+              stroke-linecap="round"
+            />
+            <!-- Dots -->
+            <ng-container *ngFor="let d of chartData; let i = index">
+              <circle
+                *ngIf="d.progress !== null"
+                [attr.cx]="i * (100 / chartData.length) + (100 / chartData.length) / 2"
+                [attr.cy]="100 - d.progress"
+                r="1.5"
+                [attr.fill]="d.status === 'hit' ? (selectedConfig?.color ?? '#10b981') : '#ef4444'"
+              />
+            </ng-container>
+          </svg>
+          <div class="line-labels">
+            <span *ngFor="let d of chartData; let i = index" [style.display]="i % 3 === 0 ? 'block' : 'none'">
+              {{ d.label.split(' ')[1] }}
+            </span>
+          </div>
+        </div>
+        <div class="chart-legend">
+          <span class="legend-hit">Hit</span>
+          <span class="legend-miss">Miss</span>
+          <span class="legend-empty">No data</span>
+        </div>
+      </div>
+
+      <!-- Table view (all habits) -->
+      <div class="table-container" *ngIf="historyView === 'table'">
+        <table class="habit-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th *ngFor="let cfg of config">{{ cfg.name }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let day of (last30 | slice: 0 : 30).reverse()">
+              <td class="date-cell">{{ day.date }}</td>
+              <td *ngFor="let cfg of config" class="status-cell">
+                <span
+                  class="table-badge"
+                  [class.table-badge--hit]="day.habits[cfg.id]?.status === 'hit'"
+                  [class.table-badge--miss]="day.habits[cfg.id]?.status === 'miss'"
+                >
+                  {{ day.habits[cfg.id]?.displayValue ?? '—' }}
+                  <span class="table-status" *ngIf="day.habits[cfg.id]?.status">
+                    {{ day.habits[cfg.id]?.status === 'hit' ? '✓' : '✗' }}
+                  </span>
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── HEATMAP SECTION ───────────────────────────────────────── -->
+    <section class="section">
+      <h2 class="section-title">30-Day Heatmap</h2>
+
+      <div class="heatmap-legend">
+        <div class="heatmap-labels">
+          <span *ngFor="let cfg of config" class="heatmap-habit-label">{{ cfg.name }}</span>
+        </div>
+      </div>
+
+      <div class="heatmap-scroll">
+        <div class="heatmap-grid">
+          <div class="heatmap-day" *ngFor="let day of heatmapDays">
+            <div class="heatmap-date">{{ day.label.split(',')[1]?.trim() ?? day.date }}</div>
+            <div class="heatmap-cells">
+              <div
+                class="heatmap-cell"
+                *ngFor="let cfg of config"
+                [class]="heatmapClass(day.statuses[cfg.id])"
+                [title]="cfg.name + ': ' + (day.statuses[cfg.id] ?? 'no data')"
+                [style.background]="day.statuses[cfg.id] === 'hit' ? cfg.color : undefined"
+              ></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="heatmap-key">
+        <span class="key-item key-item--hit">Hit</span>
+        <span class="key-item key-item--miss">Miss</span>
+        <span class="key-item key-item--empty">No data</span>
+      </div>
+    </section>
+
+  </div>
+</ion-content>
