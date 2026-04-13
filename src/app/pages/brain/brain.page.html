@@ -1,0 +1,267 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Brain</ion-title>
+    <ion-buttons slot="end">
+      <ion-note class="sync-note" *ngIf="generatedAt">Synced {{ generatedAt }}</ion-note>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Brain</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <!-- Loading -->
+  <div class="loading-container" *ngIf="loading">
+    <ion-spinner name="crescent"></ion-spinner>
+  </div>
+
+  <!-- Error -->
+  <div class="error-container" *ngIf="error">
+    <ion-icon name="warning-outline" size="large"></ion-icon>
+    <p>Could not load brain data. Run <code>node scripts/generate-brain-data.js</code></p>
+  </div>
+
+  <div class="brain-content" *ngIf="!loading && !error && data">
+
+    <!-- ── RESEARCH QUEUE ────────────────────────────────────────── -->
+    <section class="section">
+      <h2 class="section-title">Research Queue</h2>
+
+      <div class="queue-summary">
+        <div class="queue-stat queue-stat--pending">
+          <span class="queue-stat__num">{{ queue?.pending ?? 0 }}</span>
+          <span class="queue-stat__label">Pending</span>
+        </div>
+        <div class="queue-stat queue-stat--progress">
+          <span class="queue-stat__num">{{ queue?.inProgress ?? 0 }}</span>
+          <span class="queue-stat__label">In Progress</span>
+        </div>
+        <div class="queue-stat queue-stat--done">
+          <span class="queue-stat__num">{{ queue?.done ?? 0 }}</span>
+          <span class="queue-stat__label">Done</span>
+        </div>
+        <div class="queue-progress-wrap">
+          <div class="queue-progress-label">{{ queueCompletePct }}% complete</div>
+          <div class="queue-progress-track">
+            <div class="queue-progress-fill" [style.width.%]="queueCompletePct"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Queue item list -->
+      <div class="queue-list" *ngIf="queue?.items?.length">
+        <div class="queue-item" *ngFor="let item of queueItems">
+          <div class="queue-item__status" [class]="'status--' + item.status.toLowerCase()">
+            <ion-icon
+              [name]="item.status === 'DONE' ? 'checkmark-circle' : item.status === 'IN_PROGRESS' ? 'ellipse' : 'time-outline'"
+            ></ion-icon>
+          </div>
+          <div class="queue-item__body">
+            <div class="queue-item__topic">{{ item.topic }}</div>
+            <div class="queue-item__meta">{{ item.goal }} · #{{ item.priority }}</div>
+          </div>
+          <ion-badge class="queue-item__date" color="medium">{{ item.dateAdded }}</ion-badge>
+        </div>
+
+        <button class="show-more-btn" *ngIf="(queue?.items?.length ?? 0) > 5" (click)="showAllQueue = !showAllQueue">
+          <ion-icon [name]="showAllQueue ? 'chevron-up-outline' : 'chevron-down-outline'"></ion-icon>
+          {{ showAllQueue ? 'Show less' : 'Show all ' + queue?.total + ' items' }}
+        </button>
+      </div>
+    </section>
+
+    <!-- ── INSIGHTS ──────────────────────────────────────────────── -->
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Insights ({{ filteredInsights.length }})</h2>
+
+        <!-- View toggle -->
+        <div class="view-toggles">
+          <button class="toggle-btn" [class.active]="insightView === 'cards'" (click)="setInsightView('cards')">
+            <ion-icon name="grid-outline"></ion-icon> Cards
+          </button>
+          <button class="toggle-btn" [class.active]="insightView === 'list'" (click)="setInsightView('list')">
+            <ion-icon name="list-outline"></ion-icon> List
+          </button>
+        </div>
+      </div>
+
+      <!-- Domain filter chips -->
+      <div class="domain-chips">
+        <button
+          class="domain-chip"
+          *ngFor="let d of domains"
+          [class.active]="domainFilter === d"
+          (click)="setDomainFilter(d)"
+          [style.--domain-color]="d === 'All' ? '#6b7280' : domainColors[d]"
+        >
+          <ion-icon *ngIf="d !== 'All'" [name]="domainIcons[d]"></ion-icon>
+          {{ d }}
+          <span class="chip-count">{{ domainCounts[d] }}</span>
+        </button>
+      </div>
+
+      <!-- Card view -->
+      <div class="insights-grid" *ngIf="insightView === 'cards'">
+        <div
+          class="insight-card"
+          *ngFor="let insight of filteredInsights"
+          [class.insight-card--expanded]="isExpanded(insight.id)"
+          [class.insight-card--critical]="insight.priority >= 5"
+          (click)="toggleInsight(insight.id)"
+        >
+          <div class="insight-card__header">
+            <div class="insight-priority" [style.color]="insight.priorityColor">
+              {{ insight.priorityEmoji }}
+              <span class="priority-label">P{{ insight.priority }} · {{ priorityLabel(insight.priority) }}</span>
+            </div>
+            <div class="insight-domain-tag" [style.background]="domainColorFor(insight.domain) + '22'" [style.color]="domainColorFor(insight.domain)">
+              <ion-icon [name]="domainIconFor(insight.domain)"></ion-icon>
+              {{ insight.domain }}
+            </div>
+          </div>
+
+          <div class="insight-card__title">{{ insight.title }}</div>
+
+          <div class="insight-card__goal" *ngIf="insight.goalTag">
+            Goal: {{ insight.goalTag }}
+          </div>
+
+          <!-- Collapsed summary -->
+          <div class="insight-card__summary" *ngIf="!isExpanded(insight.id)">
+            {{ truncate(insight.pattern || insight.content) }}
+          </div>
+
+          <!-- Expanded content -->
+          <div class="insight-card__expanded" *ngIf="isExpanded(insight.id)">
+            <!-- Structured insight: pattern + actionable -->
+            <ng-container *ngIf="insight.type === 'structured'">
+              <div class="insight-section" *ngIf="insight.pattern">
+                <div class="insight-section__label">Pattern</div>
+                <div class="insight-section__text">{{ insight.pattern }}</div>
+              </div>
+              <div class="insight-section insight-section--actionable" *ngIf="insight.actionable">
+                <div class="insight-section__label">Actionable</div>
+                <div class="insight-section__text">{{ insight.actionable }}</div>
+              </div>
+            </ng-container>
+
+            <!-- Synthesis insight: numbered findings -->
+            <ng-container *ngIf="insight.type === 'synthesis' && insight.findings?.length">
+              <div class="finding" *ngFor="let f of insight.findings; let i = index">
+                <span class="finding-num">{{ i + 1 }}</span>
+                <div class="finding-body">
+                  <strong>{{ f.headline }}</strong>
+                  <span *ngIf="f.detail"> — {{ f.detail }}</span>
+                </div>
+              </div>
+            </ng-container>
+
+            <!-- Fallback: raw content -->
+            <ng-container *ngIf="insight.type === 'synthesis' && !insight.findings?.length">
+              <div class="insight-section">
+                <div class="insight-section__text">{{ insight.content }}</div>
+              </div>
+            </ng-container>
+          </div>
+
+          <div class="insight-card__expand-hint">
+            <ion-icon [name]="isExpanded(insight.id) ? 'chevron-up' : 'chevron-down'"></ion-icon>
+          </div>
+        </div>
+      </div>
+
+      <!-- List view -->
+      <div class="insights-list" *ngIf="insightView === 'list'">
+        <div class="insight-row" *ngFor="let insight of filteredInsights" (click)="toggleInsight(insight.id)">
+          <div class="insight-row__left">
+            <span class="insight-row__emoji">{{ insight.priorityEmoji }}</span>
+            <div class="insight-row__body">
+              <div class="insight-row__title">{{ insight.title }}</div>
+              <div class="insight-row__meta">
+                <span class="domain-tag-sm" [style.color]="domainColorFor(insight.domain)">{{ insight.domain }}</span>
+                <span *ngIf="insight.goalTag" class="goal-tag-sm">· {{ insight.goalTag }}</span>
+              </div>
+              <!-- Expanded in list view -->
+              <div class="insight-row__expanded" *ngIf="isExpanded(insight.id)">
+                <ng-container *ngIf="insight.type === 'structured'">
+                  <p *ngIf="insight.pattern"><strong>Pattern:</strong> {{ insight.pattern }}</p>
+                  <p *ngIf="insight.actionable" class="actionable-text"><strong>Actionable:</strong> {{ insight.actionable }}</p>
+                </ng-container>
+                <ng-container *ngIf="insight.type === 'synthesis' && insight.findings?.length">
+                  <div class="finding finding--compact" *ngFor="let f of insight.findings; let i = index">
+                    <span class="finding-num">{{ i + 1 }}</span>
+                    <div class="finding-body"><strong>{{ f.headline }}</strong><span *ngIf="f.detail"> — {{ f.detail }}</span></div>
+                  </div>
+                </ng-container>
+              </div>
+            </div>
+          </div>
+          <ion-icon class="insight-row__chevron" [name]="isExpanded(insight.id) ? 'chevron-up' : 'chevron-down'"></ion-icon>
+        </div>
+      </div>
+
+      <div class="empty-state" *ngIf="filteredInsights.length === 0">
+        <ion-icon name="search-outline"></ion-icon>
+        <p>No insights for this domain yet.</p>
+      </div>
+    </section>
+
+    <!-- ── CONNECTIONS ───────────────────────────────────────────── -->
+    <section class="section">
+      <h2 class="section-title">Cross-Domain Connections ({{ connections.length }})</h2>
+      <p class="section-subtitle">Patterns Shadow found by linking multiple data sources.</p>
+
+      <div class="connections-grid">
+        <div
+          class="connection-card"
+          *ngFor="let conn of connections"
+          [class.connection-card--expanded]="isConnectionExpanded(conn.id)"
+          (click)="toggleConnection(conn.id)"
+        >
+          <div class="connection-card__domains">
+            <span
+              class="domain-pill"
+              *ngFor="let d of conn.domains"
+              [style.background]="domainColorFor(d) + '22'"
+              [style.color]="domainColorFor(d)"
+            >
+              <ion-icon [name]="domainIconFor(d)"></ion-icon>
+              {{ d }}
+            </span>
+            <span class="domain-arrow">↔</span>
+          </div>
+
+          <div class="connection-card__title">{{ conn.title }}</div>
+
+          <div class="connection-card__preview" *ngIf="!isConnectionExpanded(conn.id)">
+            {{ truncate(conn.pattern, 160) }}
+          </div>
+
+          <div class="connection-card__full" *ngIf="isConnectionExpanded(conn.id)">
+            <div class="connection-sources" *ngIf="conn.sources">
+              <span class="sources-label">Sources:</span> {{ conn.sources }}
+            </div>
+            <div class="connection-pattern">{{ conn.pattern }}</div>
+            <div class="connection-goal" *ngIf="conn.goalTag">Goal: {{ conn.goalTag }}</div>
+          </div>
+
+          <ion-icon class="connection-card__chevron" [name]="isConnectionExpanded(conn.id) ? 'chevron-up' : 'chevron-down'"></ion-icon>
+        </div>
+      </div>
+
+      <div class="empty-state" *ngIf="connections.length === 0">
+        <ion-icon name="git-network-outline"></ion-icon>
+        <p>No cross-domain connections found yet.</p>
+      </div>
+    </section>
+
+  </div>
+</ion-content>
