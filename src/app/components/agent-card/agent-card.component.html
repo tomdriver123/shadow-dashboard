@@ -1,0 +1,27 @@
+<ion-card [class.card--inactive]="agent.status !== 'active'">
+  <div class="agent-image" [style.background-color]="agent.color">
+    <img *ngIf="agent.imageUrl" [src]="agent.imageUrl" [alt]="agent.name" />
+    <div *ngIf="!agent.imageUrl" class="agent-initials">
+      {{ agent.name.charAt(0) }}
+    </div>
+  </div>
+
+  <ion-card-header>
+    <div class="card-title-row">
+      <ion-card-title>{{ agent.name }}</ion-card-title>
+      <span class="status-badge status-badge--{{ agent.status }}">{{ agent.status }}</span>
+    </div>
+    <ion-card-subtitle>{{ agent.role }}</ion-card-subtitle>
+  </ion-card-header>
+
+  <ion-card-content>
+    <div class="meta-row">
+      <ion-icon name="hardware-chip-outline" class="meta-icon"></ion-icon>
+      <span class="meta-value">{{ agent.model }}</span>
+    </div>
+    <div class="meta-row">
+      <ion-icon name="time-outline" class="meta-icon"></ion-icon>
+      <span class="meta-value">{{ agent.heartbeat }}</span>
+    </div>
+  </ion-card-content>
+</ion-card>

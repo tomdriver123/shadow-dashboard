@@ -1,0 +1,138 @@
+{
+  "shadow": {
+    "role": "Orchestrator — runs the team, surfaces insights to Tom",
+    "animal": "Dog",
+    "color": "#6366f1",
+    "status": "active",
+    "model": "sonnet-4-6",
+    "heartbeat": "2h (8am–10pm)"
+  },
+  "void": {
+    "role": "Curates the unknown from the vault, sparks that ignite the whole system",
+    "animal": "Mouse Lemur",
+    "color": "#a855f7",
+    "status": "paused",
+    "model": "qwen2.5:7b",
+    "heartbeat": "paused"
+  },
+  "dexter": {
+    "role": "Web researcher — hunts signals from research queue",
+    "animal": "Velociraptor",
+    "color": "#f59e0b",
+    "status": "paused",
+    "model": "haiku-4-5",
+    "heartbeat": "paused"
+  },
+  "forge": {
+    "role": "Synthesizer — raw research to brain/insights",
+    "animal": "Panda",
+    "color": "#ef4444",
+    "status": "paused",
+    "model": "haiku-4-5",
+    "heartbeat": "paused"
+  },
+  "bonnie": {
+    "role": "Alignment — asks Tom questions, updates memory",
+    "animal": "Otter",
+    "color": "#06b6d4",
+    "status": "active",
+    "model": "qwen2.5:7b",
+    "heartbeat": "8h (9am–9pm)"
+  },
+  "lens": {
+    "role": "Reads vault + dashboard, identifies what to build, queues dev work",
+    "animal": "Llama",
+    "color": "#3b82f6",
+    "status": "planned",
+    "model": "—",
+    "heartbeat": "—"
+  },
+  "glitch": {
+    "role": "Writes dashboard code with glitch-art precision",
+    "animal": "Parrot",
+    "color": "#10b981",
+    "status": "active",
+    "model": "sonnet-4-6",
+    "heartbeat": "manual"
+  },
+  "link": {
+    "role": "Habit tracker — chains daily actions, surfaces breaks in momentum",
+    "animal": "Bunnies",
+    "color": "#14b8a6",
+    "status": "active",
+    "model": "haiku-4-5",
+    "heartbeat": "8h (9am–9pm)"
+  },
+  "tweak": {
+    "role": "Reviews code, validates against vault data, feeds gaps back",
+    "animal": "Cat",
+    "color": "#f97316",
+    "status": "paused",
+    "model": "haiku-4-5",
+    "heartbeat": "paused"
+  },
+  "beam": {
+    "role": "Reviews agent output quality, proposes prompt/model changes",
+    "animal": "Penguin",
+    "color": "#eab308",
+    "status": "planned",
+    "model": "—",
+    "heartbeat": "—"
+  },
+  "surge": {
+    "role": "Watches daily API spend, contains surges against limit",
+    "animal": "Baby Polar Bear",
+    "color": "#dc2626",
+    "status": "planned",
+    "model": "—",
+    "heartbeat": "—"
+  },
+  "flow": {
+    "role": "Connector — finds cross-domain patterns, reveals hidden convergences",
+    "animal": "Seal",
+    "color": "#8b5cf6",
+    "status": "planned",
+    "model": "—",
+    "heartbeat": "—"
+  },
+  "vital": {
+    "role": "Health domain specialist — flexible role within health topics",
+    "animal": "Baby Sea Turtle",
+    "color": "#22c55e",
+    "status": "planned",
+    "model": "—",
+    "heartbeat": "—"
+  },
+  "mint": {
+    "role": "Finance domain specialist — flexible role within finance topics",
+    "animal": "Monkey",
+    "color": "#84cc16",
+    "status": "planned",
+    "model": "—",
+    "heartbeat": "—"
+  },
+  "steve": {
+    "role": "Technical domain specialist — absolute authority, shifts forms",
+    "animal": "Velociraptor (Alpha)",
+    "color": "#6366f1",
+    "status": "planned",
+    "model": "—",
+    "heartbeat": "—"
+  },
+  "cosmo": {
+    "role": "Wild card — chooses a goal outside 3 main categories, proves alignment",
+    "animal": "Dolphin",
+    "color": "#ec4899",
+    "status": "planned",
+    "model": "—",
+    "heartbeat": "—"
+  },
+  "drive": {
+    "role": "Gamification — point systems, competitions, gamifies goals for Tom and agents",
+    "animal": "Raccoon",
+    "color": "#f43f5e",
+    "status": "planned",
+    "model": "—",
+    "heartbeat": "—"
+  }
+}
