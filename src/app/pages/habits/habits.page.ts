@@ -1,11 +1,15 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, NgZone } from '@angular/core';
 import { HabitService } from '../../services/habit.service';
 import {
   HabitsData,
   HabitConfig,
   DayRecord,
+  HabitEntry,
   HabitStreakInfo,
 } from '../../services/habit.model';
+import { Chart, registerables } from 'chart.js';
+
+Chart.register(...registerables);
 
 type HistoryView = 'bar' | 'line' | 'table';
 
@@ -15,22 +19,24 @@ type HistoryView = 'bar' | 'line' | 'table';
   styleUrls: ['./habits.page.scss'],
   standalone: false,
 })
-export class HabitsPage implements OnInit {
+export class HabitsPage implements OnInit, OnDestroy {
   data: HabitsData | null = null;
   loading = true;
   error = false;
 
   historyView: HistoryView = 'bar';
   selectedHabitId = 'steps';
+  selectedDate: string | null = null; // null = today
 
-  constructor(private habitService: HabitService) {}
+  private chart: Chart | null = null;
+
+  constructor(private habitService: HabitService, private ngZone: NgZone) {}
 
   ngOnInit() {
     this.habitService.getHabits().subscribe({
       next: (d) => {
         this.data = d;
         this.loading = false;
-        // Default to first habit with data
         if (d.config?.length) {
           this.selectedHabitId = d.config[0].id;
         }
@@ -41,6 +47,19 @@ export class HabitsPage implements OnInit {
       },
     });
   }
+
+  ngOnDestroy() {
+    this.chart?.destroy();
+  }
+
+  // ── Chart.js ViewChild (setter pattern for *ngIf) ───────────────────────
+  @ViewChild('pointsChart') set pointsChartRef(ref: ElementRef<HTMLCanvasElement> | undefined) {
+    if (ref && !this.chart && this.data) {
+      this.ngZone.runOutsideAngular(() => this.buildPointsChart(ref.nativeElement));
+    }
+  }
+
+  // ── Core data accessors ─────────────────────────────────────────────────
 
   get today(): DayRecord | null {
     return this.data?.today ?? null;
@@ -63,6 +82,90 @@ export class HabitsPage implements OnInit {
     return new Date(this.data.generatedAt).toLocaleString();
   }
 
+  get totalMaxPoints(): number {
+    return this.data?.totalMaxPoints ?? 75;
+  }
+
+  // ── Day navigation ──────────────────────────────────────────────────────
+
+  get displayedDay(): DayRecord | null {
+    if (!this.selectedDate) return this.today;
+    return this.data?.allHistory.find(d => d.date === this.selectedDate) ?? null;
+  }
+
+  get displayedDate(): string {
+    if (!this.selectedDate) return this.today?.date ?? new Date().toISOString().slice(0, 10);
+    return this.selectedDate;
+  }
+
+  get displayedDateFormatted(): string {
+    const d = new Date(this.displayedDate + 'T12:00:00');
+    if (this.isViewingToday) return 'Today';
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+
+  get isViewingToday(): boolean {
+    return this.selectedDate === null;
+  }
+
+  get canNavigatePrev(): boolean {
+    const history = this.data?.allHistory ?? [];
+    if (!history.length) return false;
+    const currentDate = this.displayedDate;
+    const idx = history.findIndex(d => d.date === currentDate);
+    return idx > 0 || idx === -1;
+  }
+
+  get canNavigateNext(): boolean {
+    const history = this.data?.allHistory ?? [];
+    if (!history.length) return false;
+    if (this.isViewingToday) return false;
+    const idx = history.findIndex(d => d.date === this.selectedDate);
+    if (idx === -1) return true;
+    return idx < history.length - 1 || this.selectedDate !== this.today?.date;
+  }
+
+  navigateDay(offset: number): void {
+    const history = this.data?.allHistory ?? [];
+    if (!history.length) return;
+    const currentDate = this.displayedDate;
+    const dates = history.map(d => d.date);
+    let idx = dates.indexOf(currentDate);
+
+    if (idx === -1) {
+      // Current date not in history — jump to the closest
+      if (offset < 0) idx = dates.length - 1;
+      else idx = 0;
+    } else {
+      idx = Math.max(0, Math.min(dates.length - 1, idx + offset));
+    }
+
+    const newDate = dates[idx];
+    this.selectedDate = (newDate === this.today?.date) ? null : newDate;
+  }
+
+  goToToday(): void {
+    this.selectedDate = null;
+  }
+
+  // ── Displayed day helpers ───────────────────────────────────────────────
+
+  get displayedTotalPoints(): number {
+    return this.displayedDay?.totalPoints ?? 0;
+  }
+
+  get displayedPointsProgress(): number {
+    return this.displayedDay?.pointsProgress ?? 0;
+  }
+
+  getDisplayedEntry(habitId: string): HabitEntry | null {
+    return this.displayedDay?.habits[habitId] ?? null;
+  }
+
+  getHabitPoints(habitId: string): number {
+    return this.displayedDay?.points?.[habitId] ?? 0;
+  }
+
   getHabitConfig(id: string): HabitConfig | undefined {
     return this.config.find(c => c.id === id);
   }
@@ -75,13 +178,21 @@ export class HabitsPage implements OnInit {
     return this.today?.habits[habitId] ?? null;
   }
 
-  getProgressClass(status: string | null): string {
+  getProgressClass(status: string | null, progress?: number | null): string {
     if (status === 'hit') return 'hit';
+    if (status === 'miss' && progress != null && progress >= 70) return 'close';
     if (status === 'miss') return 'miss';
     return 'no-data';
   }
 
-  // ── History chart ────────────────────────────────────────────────────────
+  formatTarget(cfg: HabitConfig): string {
+    if (cfg.unit === 'steps') return `${cfg.target.toLocaleString()} steps`;
+    if (cfg.unit === 'hours') return `${cfg.target}h`;
+    if (cfg.unit === 'minutes') return `${cfg.target}m`;
+    return `${cfg.target} ${cfg.unit}`;
+  }
+
+  // ── History chart ───────────────────────────────────────────────────────
 
   get selectedConfig(): HabitConfig | undefined {
     return this.getHabitConfig(this.selectedHabitId);
@@ -105,7 +216,7 @@ export class HabitsPage implements OnInit {
   get maxChartValue(): number {
     const vals = this.chartData.map(d => d.value ?? 0);
     const max = Math.max(...vals, this.selectedConfig?.target ?? 0);
-    return max * 1.1; // 10% headroom
+    return max * 1.1;
   }
 
   barHeight(progress: number | null): number {
@@ -127,7 +238,7 @@ export class HabitsPage implements OnInit {
       .join(' ');
   }
 
-  // ── Heatmap ──────────────────────────────────────────────────────────────
+  // ── Heatmap ─────────────────────────────────────────────────────────────
 
   get heatmapDays(): Array<{ date: string; label: string; statuses: Record<string, string | null> }> {
     return this.last30.map(day => {
@@ -155,10 +266,92 @@ export class HabitsPage implements OnInit {
     this.selectedHabitId = id;
   }
 
-  formatTarget(cfg: HabitConfig): string {
-    if (cfg.unit === 'steps') return `${cfg.target.toLocaleString()} steps`;
-    if (cfg.unit === 'hours') return `${cfg.target}h`;
-    if (cfg.unit === 'minutes') return `${cfg.target}m`;
-    return `${cfg.target} ${cfg.unit}`;
+  // ── Points line chart (Chart.js) ────────────────────────────────────────
+
+  private buildPointsChart(canvas: HTMLCanvasElement): void {
+    if (!this.data) return;
+    const series = this.data.pointsSeries;
+
+    const labels = series.map(d => {
+      const dt = new Date(d.date + 'T12:00:00');
+      return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    });
+
+    const dataPoints = series.map(d => d.totalPoints > 0 ? d.totalPoints : null);
+
+    this.chart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Daily Points',
+            data: dataPoints,
+            borderColor: '#6366f1',
+            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 3,
+            pointHoverRadius: 6,
+            spanGaps: false,
+          },
+          {
+            label: 'Max (75)',
+            data: Array(labels.length).fill(75),
+            borderColor: 'rgba(255, 255, 255, 0.15)',
+            borderDash: [6, 4],
+            pointRadius: 0,
+            pointHoverRadius: 0,
+            fill: false,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        interaction: {
+          mode: 'index',
+          intersect: false,
+        },
+        scales: {
+          y: {
+            min: 0,
+            max: 80,
+            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            ticks: { color: 'rgba(255, 255, 255, 0.4)', font: { size: 11 } },
+          },
+          x: {
+            grid: { display: false },
+            ticks: {
+              color: 'rgba(255, 255, 255, 0.4)',
+              font: { size: 10 },
+              maxRotation: 45,
+              autoSkip: true,
+              maxTicksLimit: 15,
+            },
+          },
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: (items) => {
+                const idx = items[0]?.dataIndex;
+                if (idx === undefined) return '';
+                return series[idx]?.date ?? '';
+              },
+              label: (ctx) => {
+                if (ctx.datasetIndex === 1) return '';
+                const idx = ctx.dataIndex;
+                const entry = series[idx];
+                if (!entry || entry.totalPoints === 0) return 'No data';
+                return `${entry.totalPoints.toFixed(1)} pts (${entry.pointsProgress}%)`;
+              },
+            },
+          },
+        },
+      },
+    });
   }
 }

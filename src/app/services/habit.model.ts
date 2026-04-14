@@ -7,6 +7,7 @@ export interface HabitConfig {
   direction: 'above' | 'below';
   icon: string;
   color: string;
+  maxPoints: number;
 }
 
 export interface HabitEntry {
@@ -14,11 +15,15 @@ export interface HabitEntry {
   displayValue: string | null;
   status: 'hit' | 'miss' | null;
   progress: number | null;
+  points: number;
 }
 
 export interface DayRecord {
   date: string;
   habits: Record<string, HabitEntry>;
+  points: Record<string, number>;
+  totalPoints: number;
+  pointsProgress: number;
 }
 
 export interface HabitStreakInfo {
@@ -28,11 +33,19 @@ export interface HabitStreakInfo {
   lastMiss: string | null;
 }
 
+export interface PointsSeriesEntry {
+  date: string;
+  totalPoints: number;
+  pointsProgress: number;
+}
+
 export interface HabitsData {
   generatedAt: string;
+  totalMaxPoints: number;
   today: DayRecord | null;
   last30: DayRecord[];
   allHistory: DayRecord[];
+  pointsSeries: PointsSeriesEntry[];
   streaks: Record<string, HabitStreakInfo>;
   config: HabitConfig[];
 }

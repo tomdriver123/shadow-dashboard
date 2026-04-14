@@ -31,15 +31,59 @@
   <!-- Content -->
   <div class="habits-content" *ngIf="!loading && !error && data">
 
-    <!-- ── TODAY SECTION ─────────────────────────────────────────── -->
+    <!-- ── DAY NAVIGATION ─────────────────────────────────────── -->
+    <div class="day-nav">
+      <button class="day-nav__btn" (click)="navigateDay(-1)" [disabled]="!canNavigatePrev">
+        <ion-icon name="chevron-back-outline"></ion-icon>
+      </button>
+      <div class="day-nav__label">
+        <span class="day-nav__date">{{ displayedDateFormatted }}</span>
+        <span class="day-nav__sub" *ngIf="isViewingToday">{{ displayedDate }}</span>
+        <button class="day-nav__today-btn" *ngIf="!isViewingToday" (click)="goToToday()">Today</button>
+      </div>
+      <button class="day-nav__btn" (click)="navigateDay(1)" [disabled]="!canNavigateNext">
+        <ion-icon name="chevron-forward-outline"></ion-icon>
+      </button>
+    </div>
+
+    <!-- ── POINTS PROGRESS BAR ────────────────────────────────── -->
+    <section class="section points-section">
+      <div class="points-bar-container">
+        <div class="points-bar-header">
+          <span class="points-total">{{ displayedTotalPoints | number:'1.1-1' }} <span class="points-max">/ {{ totalMaxPoints }}</span></span>
+          <span class="points-pct">{{ displayedPointsProgress }}%</span>
+        </div>
+
+        <div class="points-bar-track">
+          <div
+            class="points-bar-fill"
+            [style.width.%]="displayedPointsProgress"
+          ></div>
+        </div>
+
+        <div class="points-chips">
+          <span
+            class="points-chip"
+            *ngFor="let cfg of config"
+            [style.--chip-color]="cfg.color"
+            [title]="cfg.name + ': ' + getHabitPoints(cfg.id) + ' / ' + cfg.maxPoints"
+          >
+            <ion-icon [name]="cfg.icon" size="small"></ion-icon>
+            {{ getHabitPoints(cfg.id) | number:'1.1-1' }}
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── HABIT CARDS ────────────────────────────────────────── -->
     <section class="section">
-      <h2 class="section-title">Today</h2>
+      <h2 class="section-title">Habits</h2>
 
       <div class="today-grid">
         <div
           class="habit-card"
           *ngFor="let cfg of config"
-          [class]="'habit-card--' + getProgressClass(getTodayEntry(cfg.id)?.status ?? null)"
+          [class]="'habit-card--' + getProgressClass(getDisplayedEntry(cfg.id)?.status ?? null, getDisplayedEntry(cfg.id)?.progress)"
         >
           <div class="habit-card__icon" [style.color]="cfg.color">
             <ion-icon [name]="cfg.icon"></ion-icon>
@@ -48,36 +92,43 @@
           <div class="habit-card__body">
             <div class="habit-card__name">{{ cfg.name }}</div>
             <div class="habit-card__value">
-              {{ getTodayEntry(cfg.id)?.displayValue ?? '—' }}
+              {{ getDisplayedEntry(cfg.id)?.displayValue ?? '—' }}
             </div>
             <div class="habit-card__target">
               {{ cfg.direction === 'below' ? 'limit' : 'goal' }}: {{ formatTarget(cfg) }}
             </div>
+            <div class="habit-card__points">
+              {{ getHabitPoints(cfg.id) | number:'1.1-1' }} / {{ cfg.maxPoints }} pts
+            </div>
 
             <!-- Progress bar -->
-            <div class="progress-track" *ngIf="getTodayEntry(cfg.id)?.progress !== null">
+            <div class="progress-track" *ngIf="getDisplayedEntry(cfg.id)?.progress !== null">
               <div
                 class="progress-fill"
-                [style.width.%]="getTodayEntry(cfg.id)?.progress"
+                [style.width.%]="getDisplayedEntry(cfg.id)?.progress"
                 [style.background]="cfg.color"
               ></div>
             </div>
-            <div class="progress-track progress-track--empty" *ngIf="getTodayEntry(cfg.id)?.progress === null || getTodayEntry(cfg.id) === null">
+            <div class="progress-track progress-track--empty" *ngIf="getDisplayedEntry(cfg.id)?.progress === null || getDisplayedEntry(cfg.id) === null">
               <div class="progress-fill progress-fill--empty"></div>
             </div>
           </div>
 
           <div class="habit-card__status">
             <ion-badge
-              *ngIf="getTodayEntry(cfg.id)?.status === 'hit'"
+              *ngIf="getDisplayedEntry(cfg.id)?.status === 'hit'"
               color="success"
             >HIT</ion-badge>
             <ion-badge
-              *ngIf="getTodayEntry(cfg.id)?.status === 'miss'"
+              *ngIf="getDisplayedEntry(cfg.id)?.status === 'miss' && (getDisplayedEntry(cfg.id)?.progress ?? 0) >= 70"
+              color="warning"
+            >CLOSE</ion-badge>
+            <ion-badge
+              *ngIf="getDisplayedEntry(cfg.id)?.status === 'miss' && (getDisplayedEntry(cfg.id)?.progress ?? 0) < 70"
               color="danger"
             >MISS</ion-badge>
             <ion-badge
-              *ngIf="!getTodayEntry(cfg.id)?.status"
+              *ngIf="!getDisplayedEntry(cfg.id)?.status"
               color="medium"
             >—</ion-badge>
           </div>
@@ -85,7 +136,15 @@
       </div>
     </section>
 
-    <!-- ── STREAKS SECTION ───────────────────────────────────────── -->
+    <!-- ── POINTS TREND CHART ─────────────────────────────────── -->
+    <section class="section">
+      <h2 class="section-title">Points Trend</h2>
+      <div class="points-chart-container">
+        <canvas #pointsChart></canvas>
+      </div>
+    </section>
+
+    <!-- ── STREAKS SECTION ────────────────────────────────────── -->
     <section class="section">
       <h2 class="section-title">Streaks</h2>
 
@@ -104,7 +163,7 @@
       </div>
     </section>
 
-    <!-- ── HISTORY SECTION ───────────────────────────────────────── -->
+    <!-- ── HISTORY SECTION ────────────────────────────────────── -->
     <section class="section">
       <div class="section-header">
         <h2 class="section-title">History ({{ last30.length }} days)</h2>
@@ -230,7 +289,7 @@
       </div>
     </section>
 
-    <!-- ── HEATMAP SECTION ───────────────────────────────────────── -->
+    <!-- ── HEATMAP SECTION ────────────────────────────────────── -->
     <section class="section">
       <h2 class="section-title">30-Day Heatmap</h2>
 
