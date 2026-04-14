@@ -155,7 +155,7 @@
 
 .queue-item__topic {
   font-size: 13px;
-  color: var(--ion-color-light);
+  color: var(--sh-text-primary);
   line-height: 1.4;
 }
 
@@ -189,7 +189,7 @@
 
   &:hover {
     background: rgba(255,255,255,0.04);
-    color: var(--ion-color-light);
+    color: var(--sh-text-primary);
   }
 }
 
@@ -219,7 +219,7 @@
   ion-icon { font-size: 13px; }
 
   &:hover {
-    color: var(--ion-color-light);
+    color: var(--sh-text-primary);
     border-color: rgba(255,255,255,0.2);
   }
 
@@ -339,7 +339,7 @@
 .insight-card__title {
   font-size: 14px;
   font-weight: 600;
-  color: var(--ion-color-light);
+  color: var(--sh-text-primary);
   line-height: 1.35;
   margin-bottom: 6px;
 }
@@ -385,7 +385,7 @@
 
 .insight-section__text {
   font-size: 13px;
-  color: var(--ion-color-light);
+  color: var(--sh-text-primary);
   line-height: 1.5;
 }
 
@@ -415,10 +415,10 @@
 }
 
 .finding-body {
-  color: var(--ion-color-light);
+  color: var(--sh-text-primary);
   flex: 1;
 
-  strong { color: var(--ion-color-light); }
+  strong { color: var(--sh-text-primary); }
   span { color: var(--ion-color-medium); }
 }
 
@@ -466,7 +466,7 @@
 .insight-row__title {
   font-size: 13px;
   font-weight: 600;
-  color: var(--ion-color-light);
+  color: var(--sh-text-primary);
   line-height: 1.4;
   margin-bottom: 3px;
 }
@@ -490,7 +490,7 @@
   padding-top: 10px;
   border-top: 1px solid rgba(255,255,255,0.05);
   font-size: 13px;
-  color: var(--ion-color-light);
+  color: var(--sh-text-primary);
   line-height: 1.5;
 
   p { margin: 0 0 6px; }
@@ -561,7 +561,7 @@
 .connection-card__title {
   font-size: 13px;
   font-weight: 600;
-  color: var(--ion-color-light);
+  color: var(--sh-text-primary);
   margin-bottom: 8px;
   line-height: 1.4;
 }
@@ -590,7 +590,7 @@
 
 .connection-pattern {
   font-size: 13px;
-  color: var(--ion-color-light);
+  color: var(--sh-text-primary);
   line-height: 1.6;
   margin-bottom: 8px;
 }

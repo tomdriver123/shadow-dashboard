@@ -98,7 +98,9 @@ function main() {
     const color = meta.color || COLORS[id] || '#6b7280';
     const status = meta.status || 'active';
     const animal = meta.animal || undefined;
-    const imageUrl = findAvatar(id);
+    const imageUrl = meta.imageUrl || findAvatar(id);
+
+    if (status === 'archived') return null;
 
     const result = {
       id,
@@ -115,7 +117,7 @@ function main() {
     if (imageUrl) result.imageUrl = imageUrl;
 
     return result;
-  });
+  }).filter(Boolean);
 
   fs.mkdirSync(path.dirname(OUTPUT), { recursive: true });
   fs.writeFileSync(OUTPUT, JSON.stringify(agents, null, 2));

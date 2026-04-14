@@ -14,28 +14,32 @@
     </ion-toolbar>
   </ion-header>
 
-  <!-- Summary bar -->
-  <div class="summary-bar">
-    <span class="summary-item summary-item--active">{{ counts.active }} active</span>
-    <span class="summary-sep">·</span>
-    <span class="summary-item summary-item--paused">{{ counts.paused }} paused</span>
-    <span class="summary-sep">·</span>
-    <span class="summary-item summary-item--planned">{{ counts.planned }} planned</span>
+  <!-- Shadow hero card -->
+  <div class="shadow-hero" *ngIf="shadow">
+    <div class="shadow-hero__avatar" [style.background-color]="shadow.color">
+      <img *ngIf="shadow.imageUrl" [src]="shadow.imageUrl" [alt]="shadow.name" />
+      <span *ngIf="!shadow.imageUrl" class="shadow-hero__initial">S</span>
+    </div>
+    <div class="shadow-hero__body">
+      <div class="shadow-hero__label">System Lead</div>
+      <div class="shadow-hero__name">{{ shadow.name }}</div>
+      <div class="shadow-hero__role">{{ shadow.role }}</div>
+      <div class="shadow-hero__meta">
+        <ion-icon name="hardware-chip-outline"></ion-icon>
+        <span>{{ shadow.model }}</span>
+        <span class="meta-sep">·</span>
+        <ion-icon name="time-outline"></ion-icon>
+        <span>{{ shadow.heartbeat }}</span>
+      </div>
+    </div>
   </div>
 
-  <!-- Filter tabs -->
-  <div class="filter-tabs">
-    <button
-      class="filter-tab"
-      *ngFor="let f of filters"
-      [class.active]="activeFilter === f"
-      (click)="setFilter(f)"
-    >{{ f }}</button>
-  </div>
+  <!-- Team section -->
+  <div class="team-label">The Team</div>
 
   <ion-grid>
     <ion-row>
-      <ion-col size="6" size-md="4" size-lg="2" *ngFor="let agent of filteredAgents">
+      <ion-col size="6" size-md="4" size-lg="3" *ngFor="let agent of teamAgents">
         <app-agent-card [agent]="agent"></app-agent-card>
       </ion-col>
     </ion-row>

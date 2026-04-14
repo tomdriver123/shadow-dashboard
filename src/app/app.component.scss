@@ -1,0 +1,12 @@
+ion-menu {
+  ion-item {
+    --padding-start: 16px;
+    --min-height: 48px;
+    font-weight: 500;
+
+    &.selected {
+      --color: var(--ion-color-primary);
+      font-weight: 600;
+    }
+  }
+}

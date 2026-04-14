@@ -1,0 +1,6 @@
+// Hide tab bar on desktop when split-pane sidebar is visible
+@media (min-width: 992px) {
+  ion-tab-bar {
+    display: none;
+  }
+}

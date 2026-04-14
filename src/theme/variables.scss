@@ -1,0 +1,12 @@
+// For information on how to create your own theme, please refer to:
+// https://ionicframework.com/docs/theming/
+
+// ── Shadow Design Tokens ─────────────────────────────────────────────────────
+// Use these instead of --ion-color-light for primary text (which resolves to
+// near-black in dark.always.css and is unreadable on dark backgrounds).
+
+:root {
+  --sh-text-primary:   #ffffff;                    // Values, titles, primary data
+  --sh-text-body:      rgba(255, 255, 255, 0.87);  // Body / paragraph text
+  --sh-text-secondary: rgba(255, 255, 255, 0.5);   // Labels, metadata (use --ion-color-medium for this too)
+}
