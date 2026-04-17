@@ -7,6 +7,10 @@ const routes: Routes = [
     loadChildren: () => import('./tabs/tabs.module').then(m => m.TabsModule),
   },
   {
+    path: 'chat',
+    loadChildren: () => import('./pages/voice/voice.module').then(m => m.VoicePageModule),
+  },
+  {
     path: '',
     redirectTo: 'tabs',
     pathMatch: 'full',

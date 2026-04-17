@@ -14,9 +14,62 @@
     </ion-toolbar>
   </ion-header>
 
-  <div class="placeholder">
-    <ion-icon name="home-outline" size="large"></ion-icon>
-    <h2>Shadow Dashboard</h2>
-    <p>Health, finance, and insights coming soon</p>
+  <!-- Loading -->
+  <div class="placeholder" *ngIf="loading">
+    <ion-spinner name="crescent"></ion-spinner>
+  </div>
+
+  <!-- Error -->
+  <div class="placeholder" *ngIf="error && !loading">
+    <ion-icon name="alert-circle-outline" size="large"></ion-icon>
+    <p>Could not load finance data</p>
+  </div>
+
+  <!-- Widget Grid -->
+  <div class="widget-grid" *ngIf="!loading && !error">
+
+    <!-- Balances Card -->
+    <ion-card class="widget-card">
+      <ion-card-header>
+        <ion-card-title>Balances</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="balance-list">
+          <div class="balance-row" *ngFor="let b of balances"
+               [class.balance--low]="b.current < 100 && b.type !== 'credit card'">
+            <div class="balance-label">{{ b.displayName }}</div>
+            <div class="balance-amount">
+              <span *ngIf="b.type !== 'credit card'">{{ formatCurrency(b.current) }}</span>
+              <span *ngIf="b.type === 'credit card'">
+                {{ formatCurrency(b.current) }} owed · {{ formatCurrency(b.available!) }} available
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer">
+          Updated {{ lastUpdated }}
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Recent Transactions Card -->
+    <ion-card class="widget-card">
+      <ion-card-header>
+        <ion-card-title>Recent Transactions</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="txn-list">
+          <div class="txn-row" *ngFor="let t of recentTransactions">
+            <div class="txn-date">{{ t.date | date:'MMM d' }}</div>
+            <div class="txn-amount">{{ formatCurrency(t.amount) }}</div>
+            <span class="txn-category" [style.background-color]="categoryColors[t.category] || categoryColors['other']">
+              {{ t.category }}
+            </span>
+            <div class="txn-desc">{{ truncate(t.description, 25) }}</div>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
   </div>
 </ion-content>

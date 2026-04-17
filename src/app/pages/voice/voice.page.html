@@ -1,0 +1,155 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/agents"></ion-back-button>
+    </ion-buttons>
+    <ion-title (click)="openProfileModal()" class="chat-title">
+      <span class="toolbar-agent-info">
+        <img *ngIf="agent?.imageUrl" [src]="agent!.imageUrl" [alt]="agentName" class="toolbar-avatar" />
+        <div *ngIf="!agent?.imageUrl" class="toolbar-avatar toolbar-avatar--fallback"
+             [style.background-color]="agentColor">{{ agentName.charAt(0) }}</div>
+        {{ agentName }}
+      </span>
+    </ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="toggleAutoListen()" [color]="autoListen ? 'primary' : 'medium'" [disabled]="!connected">
+        <ion-icon slot="icon-only" [name]="autoListen ? 'ear' : 'ear-outline'"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<div class="chat-layout">
+  <!-- Profile panel: hidden on mobile, visible on desktop -->
+  <div class="chat-layout__profile">
+    <app-agent-profile-panel
+      *ngIf="agent"
+      [agent]="agent"
+      (heartbeatClicked)="triggerHeartbeat()"
+      (newSessionClicked)="newSession()"
+    ></app-agent-profile-panel>
+  </div>
+
+  <!-- Chat content -->
+  <div class="chat-layout__chat">
+    <ion-content [fullscreen]="true">
+      <!-- Disconnected state -->
+      <div class="offline-card" *ngIf="!connected">
+        <ion-icon name="cloud-offline-outline" class="offline-icon"></ion-icon>
+        <div class="offline-title">Voice service offline</div>
+        <div class="offline-hint">Start the voice server to connect</div>
+      </div>
+
+      <!-- Connected state -->
+      <ng-container *ngIf="connected">
+        <!-- Voice visualizer -->
+        <div class="visualizer-container">
+          <div class="viz-wrap" [attr.data-status]="status">
+            <div class="viz-ring viz-ring--1"></div>
+            <div class="viz-ring viz-ring--2"></div>
+            <div class="viz-ring viz-ring--3"></div>
+            <div class="viz-ring viz-ring--4"></div>
+            <div class="viz-ring viz-ring--5"></div>
+            <img
+              *ngIf="agent?.imageUrl"
+              class="viz-avatar"
+              [src]="agent!.imageUrl"
+              [alt]="agentName"
+            />
+            <div
+              *ngIf="!agent?.imageUrl"
+              class="viz-avatar viz-avatar--fallback"
+              [style.background-color]="agentColor"
+            >
+              {{ agentName.charAt(0) }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Session info bar -->
+        <div class="session-bar" *ngIf="session">
+          <span class="session-backend">{{ session.backend }}</span>
+        </div>
+
+        <!-- Transcript area -->
+        <div class="transcript-area">
+          <div class="transcript-empty" *ngIf="transcripts.length === 0">
+            <ion-icon name="chatbubbles-outline"></ion-icon>
+            <span>Say something or type below</span>
+          </div>
+
+          <div
+            *ngFor="let t of transcripts; let i = index"
+            class="transcript-msg"
+            [class.transcript-msg--user]="t.role === 'user'"
+            [class.transcript-msg--agent]="t.role === 'agent'"
+            [class.transcript-msg--continuation]="i > 0 && transcripts[i-1].role === t.role"
+          >
+            <div class="transcript-msg__label">{{ t.role === 'user' ? 'Tom' : agentName }}</div>
+            <div class="transcript-msg__text">{{ t.text }}</div>
+          </div>
+
+          <div #transcriptEnd></div>
+        </div>
+
+        <!-- Status bar -->
+        <div class="status-bar" [class.status-bar--active]="isBusy">
+          <div class="status-dot" [attr.data-status]="status"></div>
+          <span>{{ statusLabel }}</span>
+        </div>
+      </ng-container>
+    </ion-content>
+
+    <!-- Input footer (only when connected) -->
+    <ion-footer *ngIf="connected">
+      <ion-toolbar class="input-toolbar">
+        <div class="input-row">
+          <input
+            #inputField
+            type="text"
+            class="voice-input"
+            placeholder="Type or use Wispr..."
+            [(ngModel)]="inputText"
+            (ngModelChange)="onInputChange()"
+            (keydown)="onKeyDown($event)"
+            (paste)="onPaste()"
+            [disabled]="isBusy"
+          />
+          <ion-button
+            fill="clear"
+            class="send-btn"
+            (click)="sendText()"
+            [disabled]="!inputText.trim() || isBusy"
+            color="primary"
+          >
+            <ion-icon slot="icon-only" name="send"></ion-icon>
+          </ion-button>
+          <ion-button
+            *ngIf="autoListen"
+            fill="clear"
+            class="mute-btn"
+            (click)="toggleMute()"
+            [color]="muted ? 'danger' : 'medium'"
+            title="{{ muted ? 'Unmute' : 'Mute' }}"
+          >
+            <ion-icon
+              slot="icon-only"
+              [name]="muted ? 'mic-off' : 'mic'"
+            ></ion-icon>
+          </ion-button>
+          <ion-button
+            fill="clear"
+            class="mic-btn"
+            (click)="isBusy ? stopAction() : startListening()"
+            [color]="status === 'listening' ? 'danger' : 'primary'"
+          >
+            <ion-icon
+              slot="icon-only"
+              [name]="isBusy ? 'stop-circle' : 'mic'"
+            ></ion-icon>
+          </ion-button>
+        </div>
+      </ion-toolbar>
+    </ion-footer>
+  </div>
+</div>

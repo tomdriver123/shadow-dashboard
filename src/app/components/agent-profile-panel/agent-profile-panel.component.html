@@ -1,0 +1,66 @@
+<div class="profile-panel">
+  <!-- Avatar -->
+  <div class="profile-avatar" [style.border-color]="agent.color">
+    <img *ngIf="agent.imageUrl" [src]="agent.imageUrl" [alt]="agent.name" />
+    <span *ngIf="!agent.imageUrl" class="profile-avatar__initial" [style.background-color]="agent.color">
+      {{ agent.name.charAt(0) }}
+    </span>
+  </div>
+
+  <!-- Name & role -->
+  <div class="profile-name">{{ agent.name }}</div>
+  <div class="profile-role">{{ agent.role }}</div>
+
+  <!-- Status badge -->
+  <ion-badge [color]="statusColor" class="profile-status">
+    {{ agent.status }}
+  </ion-badge>
+
+  <!-- Description -->
+  <div class="profile-description" *ngIf="agent.description">
+    {{ agent.description }}
+  </div>
+
+  <!-- Details -->
+  <div class="profile-details">
+    <div class="profile-detail" *ngIf="agent.animal">
+      <ion-icon name="paw-outline"></ion-icon>
+      <span>{{ agent.animal }}</span>
+    </div>
+    <div class="profile-detail">
+      <ion-icon name="hardware-chip-outline"></ion-icon>
+      <span>{{ agent.model }}</span>
+    </div>
+    <div class="profile-detail">
+      <ion-icon name="time-outline"></ion-icon>
+      <span>{{ agent.heartbeat }}</span>
+    </div>
+    <div class="profile-detail">
+      <ion-icon name="server-outline"></ion-icon>
+      <span>{{ agent.backendType === 'ollama' ? 'Ollama (local)' : 'Claude (API)' }}</span>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="profile-actions">
+    <ion-button
+      expand="block"
+      fill="outline"
+      (click)="heartbeatClicked.emit()"
+      class="profile-action-btn"
+      [disabled]="agent.status !== 'active'"
+    >
+      <ion-icon name="pulse-outline" slot="start"></ion-icon>
+      Trigger Heartbeat
+    </ion-button>
+    <ion-button
+      expand="block"
+      fill="outline"
+      (click)="newSessionClicked.emit()"
+      class="profile-action-btn"
+    >
+      <ion-icon name="refresh-outline" slot="start"></ion-icon>
+      New Session
+    </ion-button>
+  </div>
+</div>

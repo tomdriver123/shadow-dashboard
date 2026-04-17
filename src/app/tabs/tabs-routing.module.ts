@@ -29,7 +29,7 @@ const routes: Routes = [
       },
       {
         path: '',
-        redirectTo: 'agents',
+        redirectTo: 'home',
         pathMatch: 'full',
       },
     ],

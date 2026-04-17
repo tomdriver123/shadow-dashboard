@@ -1,0 +1,22 @@
+<div class="sheet-wrapper">
+  <app-agent-profile-panel
+    [agent]="agent"
+    (heartbeatClicked)="triggerHeartbeat()"
+    (newSessionClicked)="dismiss()"
+  ></app-agent-profile-panel>
+
+  <div class="sheet-actions">
+    <ion-button
+      *ngIf="showChatButton"
+      expand="block"
+      (click)="openChat()"
+      class="profile-action-btn"
+    >
+      <ion-icon name="chatbubbles-outline" slot="start"></ion-icon>
+      Open Chat
+    </ion-button>
+    <ion-button expand="block" fill="clear" (click)="dismiss()" class="sheet-close-btn">
+      Close
+    </ion-button>
+  </div>
+</div>

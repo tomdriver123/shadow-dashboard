@@ -10,4 +10,10 @@ export interface Agent {
   color: string;
   animal?: string;
   description?: string;
+  backendType: 'claude' | 'ollama';
+  chatEnabled: boolean;
+  voiceEnabled: boolean;
+  ttsVoice?: string;
+  claudeModel?: string;
+  ollamaModel?: string;
 }

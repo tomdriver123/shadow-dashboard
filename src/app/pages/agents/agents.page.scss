@@ -1,32 +1,73 @@
-ion-grid {
-  padding: 8px;
+// ── Shadow hero row — centered, large ───────────────────────────
+
+.shadow-row {
+  display: flex;
+  justify-content: center;
+  padding: 28px 16px 12px;
 }
 
-// ── Shadow hero ───────────────────────────────────────────────────────────────
+// ── Team grid — 2x2 on mobile, 1x4 on desktop ──────────────────
 
-.shadow-hero {
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px 8px;
+  padding: 12px 24px;
+  max-width: 400px;
+  margin: 0 auto;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(4, 1fr);
+    max-width: 960px;
+    gap: 32px 24px;
+    padding: 20px 40px;
+  }
+}
+
+// ── Agent circle — shared between hero and team ─────────────────
+
+.agent-circle {
   display: flex;
   flex-direction: column;
   align-items: center;
-  text-align: center;
-  gap: 12px;
-  margin: 20px 12px 16px;
-  padding: 28px 24px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.18) 0%, rgba(99, 102, 241, 0.06) 100%);
-  border: 1px solid rgba(99, 102, 241, 0.35);
+  gap: 8px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  &:active .agent-circle__avatar {
+    transform: scale(0.93);
+  }
+
+  // Hero variant (Shadow)
+  &--hero .agent-circle__avatar {
+    width: 164px;
+    height: 164px;
+  }
+
+  &--hero .agent-circle__info {
+    width: 30px;
+    height: 30px;
+
+    ion-icon {
+      font-size: 26px;
+    }
+  }
+
+  &__avatar-wrap {
+    position: relative;
+  }
 
   &__avatar {
-    width: 120px;
-    height: 120px;
+    width: 132px;
+    height: 132px;
     border-radius: 50%;
-    flex-shrink: 0;
+    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
-    border: 3px solid rgba(99, 102, 241, 0.6);
-    box-shadow: 0 0 24px rgba(99, 102, 241, 0.25);
+    border: 2.5px solid;
+    transition: transform 0.15s ease;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
 
     img {
       width: 100%;
@@ -36,69 +77,102 @@ ion-grid {
   }
 
   &__initial {
-    font-size: 2.8rem;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
     font-weight: 700;
     color: rgba(255, 255, 255, 0.9);
   }
 
-  &__body {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-  }
-
-  &__label {
-    font-size: 0.62rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: #818cf8;
-    margin-bottom: 4px;
-  }
-
-  &__name {
-    font-size: 1.9rem;
-    font-weight: 800;
-    color: var(--ion-text-color);
-    line-height: 1.1;
-  }
-
-  &__role {
-    font-size: 0.88rem;
-    color: var(--ion-color-medium);
-    margin-top: 4px;
-    margin-bottom: 6px;
-    max-width: 420px;
-  }
-
-  &__meta {
+  &__info {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: none;
+    background: var(--ion-background-color, #1c1c1e);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 5px;
-    font-size: 0.75rem;
-    color: var(--ion-color-medium);
+    padding: 0;
+    cursor: pointer;
+    z-index: 2;
 
     ion-icon {
-      font-size: 0.78rem;
+      font-size: 20px;
+      color: var(--ion-color-medium);
+    }
+  }
+
+  &__name {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--ion-text-color);
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  &__role {
+    font-size: 0.8rem;
+    color: var(--ion-color-medium);
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  // Desktop: scale everything up
+  @media (min-width: 768px) {
+    &--hero .agent-circle__avatar {
+      width: 220px;
+      height: 220px;
     }
 
-    .meta-sep {
-      color: var(--ion-color-medium);
-      opacity: 0.5;
+    &__avatar {
+      width: 180px;
+      height: 180px;
+    }
+
+    &__initial {
+      font-size: 4rem;
+    }
+
+    &__name {
+      font-size: 1.2rem;
+    }
+
+    &__role {
+      font-size: 0.9rem;
     }
   }
 }
 
-// ── Team label ────────────────────────────────────────────────────────────────
+// ── Paused/other agents (dimmed) ────────────────────────────────
 
-.team-label {
+.agent-grid--dimmed {
+  opacity: 0.45;
+}
+
+.agent-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px 8px;
+  padding: 12px 24px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+// ── Section label ───────────────────────────────────────────────
+
+.section-label {
   font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--ion-color-medium);
-  padding: 8px 20px 4px;
+  padding: 16px 20px 0;
   text-align: center;
 }

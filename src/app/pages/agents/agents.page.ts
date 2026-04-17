@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { AgentService } from '../../services/agent.service';
 import { Agent } from '../../services/agent.model';
 
@@ -11,7 +12,10 @@ import { Agent } from '../../services/agent.model';
 export class AgentsPage implements OnInit {
   agents: Agent[] = [];
 
-  constructor(private agentService: AgentService) {}
+  constructor(
+    private agentService: AgentService,
+    private router: Router,
+  ) {}
 
   ngOnInit() {
     this.agentService.getAgents().subscribe(agents => {
@@ -19,11 +23,15 @@ export class AgentsPage implements OnInit {
     });
   }
 
-  get shadow(): Agent | undefined {
+  get shadowAgent(): Agent | undefined {
     return this.agents.find(a => a.id === 'shadow');
   }
 
   get teamAgents(): Agent[] {
-    return this.agents.filter(a => a.id !== 'shadow');
+    return this.agents.filter(a => a.id !== 'shadow' && a.status === 'active');
+  }
+
+  openChat(agent: Agent): void {
+    this.router.navigate(['/chat', agent.id]);
   }
 }
