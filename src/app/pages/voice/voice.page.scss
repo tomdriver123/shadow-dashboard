@@ -65,8 +65,12 @@ ion-title {
 .visualizer-container {
   display: flex;
   justify-content: center;
-  padding: 32px 0 16px;
+  padding: 64px 0 16px;
   overflow: visible;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  pointer-events: none;
 }
 
 .viz-wrap {
@@ -272,14 +276,17 @@ ion-title {
 .transcript-msg {
   margin-bottom: 16px;
   max-width: 85%;
+  animation: msg-pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 
   &--user {
     margin-left: auto;
     text-align: right;
+    animation-name: msg-pop-in-right;
   }
 
   &--agent {
     margin-right: auto;
+    animation-name: msg-pop-in-left;
   }
 
   &__label {
@@ -304,11 +311,12 @@ ion-title {
     display: inline-block;
     padding: 10px 14px;
     border-radius: 16px 16px 4px 16px;
-    background: var(--ion-color-primary);
+    background: #a855f7;
     color: #fff;
     font-size: 0.9rem;
     line-height: 1.4;
     text-align: left;
+    box-shadow: 0 4px 24px rgba(168, 85, 247, 0.55), 0 1px 4px rgba(0,0,0,0.4);
   }
 
   &--agent &__text {
@@ -320,7 +328,18 @@ ion-title {
     font-size: 0.9rem;
     line-height: 1.4;
     text-align: left;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
   }
+}
+
+@keyframes msg-pop-in-right {
+  0%   { opacity: 0; transform: translateX(40px) scale(0.85); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes msg-pop-in-left {
+  0%   { opacity: 0; transform: translateX(-40px) scale(0.85); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
 }
 
 // ── Status bar ──────────────────────────────────────────────────
