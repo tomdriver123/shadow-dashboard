@@ -6,6 +6,7 @@ import {
   DayRecord,
   HabitEntry,
   HabitStreakInfo,
+  HabitTier,
 } from '../../services/habit.model';
 import { Chart, registerables } from 'chart.js';
 
@@ -178,14 +179,35 @@ export class HabitsPage implements OnInit, OnDestroy {
     return this.today?.habits[habitId] ?? null;
   }
 
-  getProgressClass(status: string | null, progress?: number | null): string {
-    if (status === 'hit') return 'hit';
-    if (status === 'miss' && progress != null && progress >= 70) return 'close';
-    if (status === 'miss') return 'miss';
-    return 'no-data';
+  tierClass(tier: HabitTier | null | undefined): string {
+    return tier ?? 'no-data';
+  }
+
+  tierLabel(tier: HabitTier | null | undefined): string {
+    if (!tier) return '—';
+    return tier.toUpperCase();
+  }
+
+  private minutesAfterMidnightToClock(totalMin: number): string {
+    const h = Math.floor(totalMin / 60) % 24;
+    const m = totalMin % 60;
+    let displayHour: number;
+    let ampm: string;
+    if (h === 0)       { displayHour = 12; ampm = 'AM'; }
+    else if (h < 12)   { displayHour = h;  ampm = 'AM'; }
+    else if (h === 12) { displayHour = 12; ampm = 'PM'; }
+    else               { displayHour = h - 12; ampm = 'PM'; }
+    return `${displayHour}:${String(m).padStart(2, '0')} ${ampm}`;
   }
 
   formatTarget(cfg: HabitConfig): string {
+    if (cfg.id === 'sleep_timing') {
+      // target stored as minutes-after-9pm; convert to clock time
+      return this.minutesAfterMidnightToClock((21 * 60 + cfg.target) % (24 * 60));
+    }
+    if (cfg.id === 'wake_timing') {
+      return this.minutesAfterMidnightToClock(cfg.target);
+    }
     if (cfg.unit === 'steps') return `${cfg.target.toLocaleString()} steps`;
     if (cfg.unit === 'hours') return `${cfg.target}h`;
     if (cfg.unit === 'minutes') return `${cfg.target}m`;
@@ -198,7 +220,7 @@ export class HabitsPage implements OnInit, OnDestroy {
     return this.getHabitConfig(this.selectedHabitId);
   }
 
-  get chartData(): Array<{ date: string; value: number | null; progress: number | null; status: string | null; label: string }> {
+  get chartData(): Array<{ date: string; value: number | null; progress: number | null; status: string | null; tier: HabitTier | null; label: string }> {
     return this.last30.map(day => {
       const h = day.habits[this.selectedHabitId];
       const dateObj = new Date(day.date + 'T12:00:00');
@@ -208,6 +230,7 @@ export class HabitsPage implements OnInit, OnDestroy {
         value: h?.value ?? null,
         progress: h?.progress ?? null,
         status: h?.status ?? null,
+        tier: h?.tier ?? null,
         label,
       };
     });
@@ -240,22 +263,21 @@ export class HabitsPage implements OnInit, OnDestroy {
 
   // ── Heatmap ─────────────────────────────────────────────────────────────
 
-  get heatmapDays(): Array<{ date: string; label: string; statuses: Record<string, string | null> }> {
+  get heatmapDays(): Array<{ date: string; label: string; tiers: Record<string, HabitTier | null> }> {
     return this.last30.map(day => {
       const dateObj = new Date(day.date + 'T12:00:00');
       const label = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-      const statuses: Record<string, string | null> = {};
+      const tiers: Record<string, HabitTier | null> = {};
       for (const cfg of this.config) {
-        statuses[cfg.id] = day.habits[cfg.id]?.status ?? null;
+        tiers[cfg.id] = day.habits[cfg.id]?.tier ?? null;
       }
-      return { date: day.date, label, statuses };
+      return { date: day.date, label, tiers };
     });
   }
 
-  heatmapClass(status: string | null): string {
-    if (status === 'hit') return 'cell-hit';
-    if (status === 'miss') return 'cell-miss';
-    return 'cell-empty';
+  heatmapClass(tier: HabitTier | null): string {
+    if (!tier) return 'cell-empty';
+    return `cell-${tier}`;
   }
 
   setHistoryView(v: HistoryView) {

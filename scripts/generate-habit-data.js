@@ -203,6 +203,24 @@ function getProgress(value, target, direction) {
   }
 }
 
+function getTier(progress) {
+  if (progress === null || progress === undefined) return null;
+  if (progress >= 100) return 'hit';
+  if (progress >= 75)  return 'close';
+  if (progress >= 50)  return 'mid';
+  if (progress >= 25)  return 'miss';
+  return 'fail';
+}
+
+// Silent sanity caps — guard against pipeline bugs (e.g. 25.95h sleep artifacts).
+// Applied after parse, before progress/points compute.
+function applyCaps(value, habitId) {
+  if (value === null || value === undefined) return value;
+  if (habitId === 'sleep_duration') return Math.min(10, value);
+  if (habitId === 'social_media')   return Math.min(720, value);
+  return value;
+}
+
 // ── File parsers ──────────────────────────────────────────────────────────────
 
 function parseDailyFile(filePath) {
@@ -274,12 +292,15 @@ function main() {
 
     for (const cfg of HABIT_CONFIG) {
       const h = day.habits[cfg.id] || { value: null, status: null };
-      const pts = Math.round(calcPoints(h.value, cfg.id) * 10) / 10;
+      const cappedValue = applyCaps(h.value, cfg.id);
+      const pts = Math.round(calcPoints(cappedValue, cfg.id) * 10) / 10;
+      const progress = getProgress(cappedValue, cfg.target, cfg.direction);
       annotated.habits[cfg.id] = {
-        value: h.value,
-        displayValue: formatValue(h.value, cfg.id),
+        value: cappedValue,
+        displayValue: formatValue(cappedValue, cfg.id),
         status: h.status,
-        progress: getProgress(h.value, cfg.target, cfg.direction),
+        progress,
+        tier: getTier(progress),
         points: pts,
       };
       annotated.points[cfg.id] = pts;
@@ -295,15 +316,15 @@ function main() {
 
   const today = new Date().toISOString().split('T')[0];
 
-  // For past days: null status → 'miss' (everything is auto-tracked now)
-  // Today stays null — data may still be syncing
+  // For past days: null status/value → 'miss' + 'fail' tier (no credit for not logging)
+  // Today stays null — data may still be syncing (card shows `—`)
   for (const day of annotatedHistory) {
     if (day.date >= today) continue;
     for (const cfg of HABIT_CONFIG) {
       const entry = day.habits[cfg.id];
-      if (entry && entry.status === null) {
-        entry.status = 'miss';
-      }
+      if (!entry) continue;
+      if (entry.status === null) entry.status = 'miss';
+      if (entry.value === null && entry.tier === null) entry.tier = 'fail';
     }
   }
 

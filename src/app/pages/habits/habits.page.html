@@ -50,7 +50,7 @@
     <section class="section points-section">
       <div class="points-bar-container">
         <div class="points-bar-header">
-          <span class="points-total">{{ displayedTotalPoints | number:'1.1-1' }} <span class="points-max">/ {{ totalMaxPoints }}</span></span>
+          <span class="points-total">{{ displayedTotalPoints | number:'1.1-1' }} <span class="points-max">of {{ totalMaxPoints }}</span></span>
           <span class="points-pct">{{ displayedPointsProgress }}%</span>
         </div>
 
@@ -59,18 +59,6 @@
             class="points-bar-fill"
             [style.width.%]="displayedPointsProgress"
           ></div>
-        </div>
-
-        <div class="points-chips">
-          <span
-            class="points-chip"
-            *ngFor="let cfg of config"
-            [style.--chip-color]="cfg.color"
-            [title]="cfg.name + ': ' + getHabitPoints(cfg.id) + ' / ' + cfg.maxPoints"
-          >
-            <ion-icon [name]="cfg.icon" size="small"></ion-icon>
-            {{ getHabitPoints(cfg.id) | number:'1.1-1' }}
-          </span>
         </div>
       </div>
     </section>
@@ -83,7 +71,7 @@
         <div
           class="habit-card"
           *ngFor="let cfg of config"
-          [class]="'habit-card--' + getProgressClass(getDisplayedEntry(cfg.id)?.status ?? null, getDisplayedEntry(cfg.id)?.progress)"
+          [class]="'habit-card--' + tierClass(getDisplayedEntry(cfg.id)?.tier)"
         >
           <div class="habit-card__icon" [style.color]="cfg.color">
             <ion-icon [name]="cfg.icon"></ion-icon>
@@ -101,12 +89,12 @@
               {{ getHabitPoints(cfg.id) | number:'1.1-1' }} / {{ cfg.maxPoints }} pts
             </div>
 
-            <!-- Progress bar -->
+            <!-- Progress bar: fills toward goal/limit; color by tier -->
             <div class="progress-track" *ngIf="getDisplayedEntry(cfg.id)?.progress !== null">
               <div
                 class="progress-fill"
+                [class]="'progress-fill--' + tierClass(getDisplayedEntry(cfg.id)?.tier)"
                 [style.width.%]="getDisplayedEntry(cfg.id)?.progress"
-                [style.background]="cfg.color"
               ></div>
             </div>
             <div class="progress-track progress-track--empty" *ngIf="getDisplayedEntry(cfg.id)?.progress === null || getDisplayedEntry(cfg.id) === null">
@@ -115,22 +103,10 @@
           </div>
 
           <div class="habit-card__status">
-            <ion-badge
-              *ngIf="getDisplayedEntry(cfg.id)?.status === 'hit'"
-              color="success"
-            >HIT</ion-badge>
-            <ion-badge
-              *ngIf="getDisplayedEntry(cfg.id)?.status === 'miss' && (getDisplayedEntry(cfg.id)?.progress ?? 0) >= 70"
-              color="warning"
-            >CLOSE</ion-badge>
-            <ion-badge
-              *ngIf="getDisplayedEntry(cfg.id)?.status === 'miss' && (getDisplayedEntry(cfg.id)?.progress ?? 0) < 70"
-              color="danger"
-            >MISS</ion-badge>
-            <ion-badge
-              *ngIf="!getDisplayedEntry(cfg.id)?.status"
-              color="medium"
-            >—</ion-badge>
+            <span
+              class="tier-badge"
+              [class]="'tier-badge--' + tierClass(getDisplayedEntry(cfg.id)?.tier)"
+            >{{ tierLabel(getDisplayedEntry(cfg.id)?.tier) }}</span>
           </div>
         </div>
       </div>
@@ -205,18 +181,17 @@
             <div
               class="bar"
               [style.height.%]="barHeight(d.progress)"
-              [class.bar--hit]="d.status === 'hit'"
-              [class.bar--miss]="d.status === 'miss'"
-              [class.bar--empty]="d.status === null"
-              [style.background]="d.status === 'hit' ? selectedConfig?.color : undefined"
+              [class]="'bar--' + tierClass(d.tier)"
             ></div>
             <div class="bar-label">{{ d.label.split(' ')[1] }}</div>
           </div>
         </div>
         <div class="chart-legend">
           <span class="legend-hit">Hit</span>
+          <span class="legend-close">Close</span>
+          <span class="legend-mid">Mid</span>
           <span class="legend-miss">Miss</span>
-          <span class="legend-empty">No data</span>
+          <span class="legend-fail">Fail</span>
         </div>
       </div>
 
@@ -242,7 +217,7 @@
                 [attr.cx]="i * (100 / chartData.length) + (100 / chartData.length) / 2"
                 [attr.cy]="100 - d.progress"
                 r="1.5"
-                [attr.fill]="d.status === 'hit' ? (selectedConfig?.color ?? '#10b981') : '#ef4444'"
+                [attr.class]="'line-dot line-dot--' + tierClass(d.tier)"
               />
             </ng-container>
           </svg>
@@ -307,9 +282,8 @@
               <div
                 class="heatmap-cell"
                 *ngFor="let cfg of config"
-                [class]="heatmapClass(day.statuses[cfg.id])"
-                [title]="cfg.name + ': ' + (day.statuses[cfg.id] ?? 'no data')"
-                [style.background]="day.statuses[cfg.id] === 'hit' ? cfg.color : undefined"
+                [class]="heatmapClass(day.tiers[cfg.id])"
+                [title]="cfg.name + ': ' + (day.tiers[cfg.id] ?? 'no data')"
               ></div>
             </div>
           </div>
@@ -318,7 +292,10 @@
 
       <div class="heatmap-key">
         <span class="key-item key-item--hit">Hit</span>
+        <span class="key-item key-item--close">Close</span>
+        <span class="key-item key-item--mid">Mid</span>
         <span class="key-item key-item--miss">Miss</span>
+        <span class="key-item key-item--fail">Fail</span>
         <span class="key-item key-item--empty">No data</span>
       </div>
     </section>

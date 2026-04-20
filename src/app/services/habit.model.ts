@@ -10,11 +10,14 @@ export interface HabitConfig {
   maxPoints: number;
 }
 
+export type HabitTier = 'fail' | 'miss' | 'mid' | 'close' | 'hit';
+
 export interface HabitEntry {
   value: number | null;
   displayValue: string | null;
   status: 'hit' | 'miss' | null;
   progress: number | null;
+  tier: HabitTier | null;
   points: number;
 }
 
