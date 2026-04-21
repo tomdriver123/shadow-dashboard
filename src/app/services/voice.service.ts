@@ -39,6 +39,7 @@ export class VoiceService {
   status$ = new BehaviorSubject<VoiceStatus>('idle');
   session$ = new BehaviorSubject<VoiceSession | null>(null);
   autoListen$ = new BehaviorSubject<boolean>(false);
+  mode$ = new BehaviorSubject<'chat' | 'voice'>('chat');
   transcript$ = new Subject<VoiceTranscript>();
   transcriptHistory$ = new Subject<VoiceTranscript[]>();
   info$ = new Subject<string>();
@@ -81,6 +82,8 @@ export class VoiceService {
       if (this.browserAudio) {
         this.send({ cmd: 'init', mode: 'browser_audio' });
       }
+      // Apply current chat/voice mode to the server
+      this.send({ cmd: 'set_mode', mode: this.mode$.getValue() });
     };
 
     this.ws.onclose = () => {
@@ -134,6 +137,9 @@ export class VoiceService {
           case 'config':
             if (data.auto_listen !== undefined) {
               this.autoListen$.next(data.auto_listen);
+            }
+            if (data.mode === 'chat' || data.mode === 'voice') {
+              this.mode$.next(data.mode);
             }
             break;
           case 'info':
@@ -212,6 +218,11 @@ export class VoiceService {
 
   setMute(muted: boolean): void {
     this.send({ cmd: 'set_mute', muted });
+  }
+
+  setMode(mode: 'chat' | 'voice'): void {
+    this.mode$.next(mode);
+    this.send({ cmd: 'set_mode', mode });
   }
 
   // ── Browser Audio Playback ──────────────────────────────────────

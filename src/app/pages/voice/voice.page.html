@@ -12,7 +12,11 @@
       </span>
     </ion-title>
     <ion-buttons slot="end">
-      <ion-button (click)="toggleAutoListen()" [color]="autoListen ? 'primary' : 'medium'" [disabled]="!connected">
+      <ion-button (click)="toggleMode()" [color]="mode === 'voice' ? 'primary' : 'medium'" [disabled]="!connected"
+        title="{{ mode === 'chat' ? 'Switch to voice' : 'Switch to chat' }}">
+        <ion-icon slot="icon-only" [name]="mode === 'voice' ? 'mic' : 'chatbubbles-outline'"></ion-icon>
+      </ion-button>
+      <ion-button *ngIf="mode === 'voice'" (click)="toggleAutoListen()" [color]="autoListen ? 'primary' : 'medium'" [disabled]="!connected">
         <ion-icon slot="icon-only" [name]="autoListen ? 'ear' : 'ear-outline'"></ion-icon>
       </ion-button>
     </ion-buttons>
@@ -43,7 +47,7 @@
       <!-- Connected state -->
       <ng-container *ngIf="connected">
         <!-- Voice visualizer -->
-        <div class="visualizer-container">
+        <div class="visualizer-container" *ngIf="mode === 'voice'">
           <div class="viz-wrap" [attr.data-status]="status">
             <div class="viz-ring viz-ring--1"></div>
             <div class="viz-ring viz-ring--2"></div>
@@ -86,7 +90,9 @@
             [class.transcript-msg--continuation]="i > 0 && transcripts[i-1].role === t.role"
           >
             <div class="transcript-msg__label">{{ t.role === 'user' ? 'Tom' : agentName }}</div>
-            <div class="transcript-msg__text">{{ t.text }}</div>
+            <div class="transcript-msg__text" *ngIf="t.role === 'user' || mode === 'voice'">{{ t.text }}</div>
+            <markdown class="transcript-msg__text transcript-msg__text--md"
+              *ngIf="t.role === 'agent' && mode === 'chat'" [data]="t.text"></markdown>
           </div>
 
           <div #transcriptEnd></div>
@@ -108,7 +114,7 @@
             #inputField
             type="text"
             class="voice-input"
-            placeholder="Type or use Wispr..."
+            [placeholder]="mode === 'chat' ? 'Message...' : 'Type or use Wispr...'"
             [(ngModel)]="inputText"
             (ngModelChange)="onInputChange()"
             (keydown)="onKeyDown($event)"
@@ -125,7 +131,7 @@
             <ion-icon slot="icon-only" name="send"></ion-icon>
           </ion-button>
           <ion-button
-            *ngIf="autoListen"
+            *ngIf="mode === 'voice' && autoListen"
             fill="clear"
             class="mute-btn"
             (click)="toggleMute()"
@@ -138,6 +144,7 @@
             ></ion-icon>
           </ion-button>
           <ion-button
+            *ngIf="mode === 'voice'"
             fill="clear"
             class="mic-btn"
             (click)="isBusy ? stopAction() : startListening()"

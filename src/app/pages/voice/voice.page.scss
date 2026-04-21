@@ -504,3 +504,32 @@ ion-title {
     color: white;
   }
 }
+
+// === Markdown rendering in agent chat bubbles ===
+
+.transcript-msg__text--md {
+  :is(p, ul, ol, pre, h1, h2, h3, h4) {
+    margin: 0.35rem 0;
+  }
+  :is(p, ul, ol):first-child { margin-top: 0; }
+  :is(p, ul, ol):last-child { margin-bottom: 0; }
+  code {
+    font-family: var(--ion-font-family-monospace, monospace);
+    font-size: 0.9em;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.05em 0.3em;
+    border-radius: 3px;
+  }
+  pre {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    code {
+      background: transparent;
+      padding: 0;
+    }
+  }
+  ul, ol { padding-left: 1.25rem; }
+  a { color: var(--ion-color-primary); }
+}

@@ -23,6 +23,7 @@ export class VoicePage implements OnInit, OnDestroy {
   session: VoiceSession | null = null;
   autoListen = false;
   muted = false;
+  mode: 'chat' | 'voice' = 'chat';
   transcripts: VoiceTranscript[] = [];
   inputText = '';
 
@@ -62,6 +63,7 @@ export class VoicePage implements OnInit, OnDestroy {
       this.voiceService.status$.subscribe(s => this.status = s),
       this.voiceService.session$.subscribe(s => this.session = s),
       this.voiceService.autoListen$.subscribe(a => this.autoListen = a),
+      this.voiceService.mode$.subscribe(m => this.mode = m),
       this.voiceService.transcript$.subscribe(t => {
         this.transcripts.push(t);
         setTimeout(() => this.scrollToBottom(), 50);
@@ -161,6 +163,11 @@ export class VoicePage implements OnInit, OnDestroy {
   toggleMute(): void {
     this.muted = !this.muted;
     this.voiceService.setMute(this.muted);
+  }
+
+  toggleMode(): void {
+    const next = this.mode === 'chat' ? 'voice' : 'chat';
+    this.voiceService.setMode(next);
   }
 
   newSession(): void {
