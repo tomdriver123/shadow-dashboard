@@ -1,0 +1,199 @@
+:host {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.jobs-dash {
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 0 8px 24px;
+  max-width: 680px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.state-placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+
+  ion-spinner { --color: var(--ion-color-medium); }
+  ion-icon { font-size: 64px; color: var(--ion-color-medium); }
+  p { color: var(--ion-color-medium); margin: 0; }
+}
+
+.empty-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--ion-color-medium);
+  margin: 0;
+}
+
+.empty-sub {
+  font-size: 0.85rem;
+  color: var(--ion-color-medium);
+  margin: 0;
+}
+
+.meta-line {
+  font-size: 0.75rem;
+  color: var(--ion-color-medium);
+  padding: 12px 4px 8px;
+  letter-spacing: 0.02em;
+}
+
+.rec-card {
+  background: var(--ion-card-background, #1c1c1e);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  transition: opacity 0.2s ease;
+
+  &.voted {
+    opacity: 0.55;
+  }
+}
+
+.rec-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.rec-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rec-company {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ion-text-color);
+}
+
+.rec-role {
+  font-size: 0.85rem;
+  color: var(--ion-color-medium);
+}
+
+.rec-badges {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ion-color-medium);
+  white-space: nowrap;
+}
+
+.badge--lane-b {
+  background: rgba(99, 102, 241, 0.18);
+  color: #818cf8;
+}
+
+.badge--lane-a {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ion-color-medium);
+}
+
+.badge--score {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+.fit-bullets {
+  margin: 0 0 12px;
+  padding-left: 18px;
+
+  li {
+    font-size: 0.85rem;
+    color: var(--ion-text-color);
+    margin-bottom: 4px;
+    line-height: 1.4;
+
+    &:last-child { margin-bottom: 0; }
+  }
+}
+
+.rec-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.open-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--ion-color-primary);
+  background: none;
+  border: none;
+  padding: 4px 0;
+  cursor: pointer;
+
+  ion-icon { font-size: 1rem; }
+}
+
+.verdict-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.verdict-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition: background 0.15s, border-color 0.15s;
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  &.liked.active {
+    background: #16a34a22;
+    border-color: #16a34a;
+  }
+
+  &.passed.active {
+    background: #dc262622;
+    border-color: #dc2626;
+  }
+}
+
+.btn-spinner {
+  width: 16px;
+  height: 16px;
+  --color: var(--ion-color-medium);
+}

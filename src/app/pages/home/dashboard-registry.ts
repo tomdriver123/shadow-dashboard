@@ -1,5 +1,6 @@
 import { Type } from '@angular/core';
 import { FinanceDashboardComponent } from './dashboards/finance/finance-dashboard.component';
+import { JobsDashboardComponent } from './dashboards/jobs/jobs-dashboard.component';
 import { RemindersDashboardComponent } from './dashboards/reminders/reminders-dashboard.component';
 import { EmailDashboardComponent } from './dashboards/email/email-dashboard.component';
 
@@ -18,6 +19,13 @@ export const DASHBOARDS: DashboardDef[] = [
     title: 'Finance',
     icon: 'wallet-outline',
     component: FinanceDashboardComponent,
+    hasRealData: true,
+  },
+  {
+    id: 'jobs',
+    title: 'Job Hunt',
+    icon: 'briefcase-outline',
+    component: JobsDashboardComponent,
     hasRealData: true,
   },
   {

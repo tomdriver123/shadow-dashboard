@@ -1,0 +1,71 @@
+<div class="jobs-dash">
+  <div class="state-placeholder" *ngIf="loading">
+    <ion-spinner name="crescent"></ion-spinner>
+  </div>
+
+  <div class="state-placeholder" *ngIf="error && !loading">
+    <ion-icon name="alert-circle-outline" size="large"></ion-icon>
+    <p>Could not load job data — run /job-scan to generate</p>
+  </div>
+
+  <ng-container *ngIf="!loading && !error && data">
+    <div class="state-placeholder" *ngIf="data.recs.length === 0">
+      <ion-icon name="briefcase-outline" size="large"></ion-icon>
+      <p class="empty-title">No leads yet</p>
+      <p class="empty-sub">Run /job-scan to find recommendations</p>
+    </div>
+
+    <ng-container *ngIf="data.recs.length > 0">
+      <div class="meta-line">
+        {{ data.pendingCount }} pending · scanned {{ data.generatedAt | date:'MMM d' }}
+      </div>
+
+      <div class="rec-card" *ngFor="let rec of data.recs" [class.voted]="hasVoted(rec)">
+        <div class="rec-header">
+          <div class="rec-title">
+            <span class="rec-company">{{ rec.company }}</span>
+            <span class="rec-role">{{ rec.role }}</span>
+          </div>
+          <div class="rec-badges">
+            <span class="badge badge--source">{{ rec.source }}</span>
+            <span class="badge"
+              [class.badge--lane-b]="rec.lane === 'lane-b'"
+              [class.badge--lane-a]="rec.lane === 'lane-a'">{{ rec.lane }}</span>
+            <span class="badge badge--score">{{ rec.score }}/10</span>
+          </div>
+        </div>
+
+        <ul class="fit-bullets">
+          <li *ngFor="let bullet of rec.fitBullets">{{ bullet }}</li>
+        </ul>
+
+        <div class="rec-footer">
+          <button class="open-btn" (click)="openUrl(rec.url)">
+            <ion-icon name="open-outline"></ion-icon>
+            {{ rec.source }}
+          </button>
+          <div class="verdict-btns">
+            <button
+              class="verdict-btn liked"
+              [class.active]="verdictState[rec.id] === 'liked'"
+              [disabled]="!!verdictState[rec.id]"
+              (click)="vote(rec, 'liked')"
+            >
+              <ion-spinner *ngIf="isVoting(rec)" name="crescent" class="btn-spinner"></ion-spinner>
+              <span *ngIf="!isVoting(rec)">👍</span>
+            </button>
+            <button
+              class="verdict-btn passed"
+              [class.active]="verdictState[rec.id] === 'passed'"
+              [disabled]="!!verdictState[rec.id]"
+              (click)="vote(rec, 'passed')"
+            >
+              <ion-spinner *ngIf="isVoting(rec)" name="crescent" class="btn-spinner"></ion-spinner>
+              <span *ngIf="!isVoting(rec)">👎</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+  </ng-container>
+</div>
