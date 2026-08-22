@@ -33,3 +33,14 @@ ion-split-pane {
   --side-min-width: 175px;
   --side-max-width: 175px;
 }
+
+/* Device-targeted visibility utilities. Breakpoint: 768px (see theme/_breakpoints.scss).
+   Use these on simple elements (header, p, div). For containers that need a
+   specific display (flex/grid), manage breakpoints in the element's own SCSS. */
+.desktop-only { display: none; }
+.mobile-only  { display: revert; }
+
+@media (min-width: 768px) {
+  .desktop-only { display: revert; }
+  .mobile-only  { display: none; }
+}

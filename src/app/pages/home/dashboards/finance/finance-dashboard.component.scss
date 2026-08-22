@@ -1,0 +1,144 @@
+:host {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.finance-dash {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.state-placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+
+  ion-spinner { --color: var(--ion-color-medium); }
+  ion-icon { font-size: 64px; color: var(--ion-color-medium); }
+  p { color: var(--ion-color-medium); margin: 0; }
+}
+
+.widget-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  padding: 0 8px 16px;
+  max-width: 960px;
+  margin: 0 auto;
+  width: 100%;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    padding: 8px 16px 24px;
+  }
+}
+
+.widget-card {
+  --background: var(--ion-card-background, #1c1c1e);
+  border-radius: 12px;
+  margin: 8px 0;
+
+  ion-card-title {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+}
+
+.balance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.balance-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+  &:last-child { border-bottom: none; }
+}
+
+.balance-label {
+  font-size: 0.9rem;
+  color: var(--ion-text-color);
+  font-weight: 500;
+}
+
+.balance-amount {
+  font-size: 0.9rem;
+  color: var(--ion-text-color);
+  font-weight: 600;
+  text-align: right;
+}
+
+.balance--low .balance-amount {
+  color: #f59e0b;
+}
+
+.card-footer {
+  margin-top: 12px;
+  font-size: 0.7rem;
+  color: var(--ion-color-medium);
+  text-align: right;
+}
+
+.txn-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.txn-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+  &:last-child { border-bottom: none; }
+}
+
+.txn-date {
+  font-size: 0.8rem;
+  color: var(--ion-color-medium);
+  white-space: nowrap;
+}
+
+.txn-amount {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ion-text-color);
+  text-align: right;
+}
+
+.txn-category {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.txn-desc {
+  font-size: 0.8rem;
+  color: var(--ion-color-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}

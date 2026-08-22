@@ -1,12 +1,10 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { HomePage } from './home.page';
+import { HomeShellPage } from './home.page';
 
 const routes: Routes = [
-  {
-    path: '',
-    component: HomePage,
-  },
+  { path: ':dashboardId', component: HomeShellPage },
+  { path: '', redirectTo: 'finance', pathMatch: 'full' },
 ];
 
 @NgModule({

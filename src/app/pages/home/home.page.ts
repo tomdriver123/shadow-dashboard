@@ -1,45 +1,59 @@
-import { Component, OnInit } from '@angular/core';
-import { FinanceService } from '../../services/finance.service';
-import { AccountBalance, Transaction, CATEGORY_COLORS } from '../../services/finance.model';
+import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Subject, takeUntil } from 'rxjs';
+import { DASHBOARDS } from './dashboard-registry';
 
 @Component({
-  selector: 'app-home',
+  selector: 'app-home-shell',
   templateUrl: './home.page.html',
   styleUrls: ['./home.page.scss'],
   standalone: false,
 })
-export class HomePage implements OnInit {
-  balances: AccountBalance[] = [];
-  recentTransactions: Transaction[] = [];
-  lastUpdated = '';
-  loading = true;
-  error = false;
-  categoryColors = CATEGORY_COLORS;
+export class HomeShellPage implements AfterViewInit, OnDestroy {
+  @ViewChild('swiperEl') swiperRef!: ElementRef<HTMLElement & { swiper?: any }>;
 
-  constructor(private financeService: FinanceService) {}
+  dashboards = DASHBOARDS;
+  initialSlide = 0;
+  activeIndex = 0;
 
-  ngOnInit() {
-    this.financeService.getFinanceData().subscribe({
-      next: (data) => {
-        this.balances = data.balances;
-        this.recentTransactions = data.transactions
-          .filter(t => t.category !== 'income')
-          .slice(0, 3);
-        this.lastUpdated = data.lastUpdated;
-        this.loading = false;
-      },
-      error: () => {
-        this.loading = false;
-        this.error = true;
-      },
+  private destroy$ = new Subject<void>();
+
+  constructor(private route: ActivatedRoute, private router: Router) {
+    const id = this.route.snapshot.paramMap.get('dashboardId');
+    const idx = DASHBOARDS.findIndex(d => d.id === id);
+    this.initialSlide = Math.max(0, idx);
+    this.activeIndex = this.initialSlide;
+  }
+
+  ngAfterViewInit() {
+    this.route.paramMap.pipe(takeUntil(this.destroy$)).subscribe(params => {
+      const id = params.get('dashboardId');
+      const idx = DASHBOARDS.findIndex(d => d.id === id);
+      if (idx > -1 && idx !== this.activeIndex) {
+        this.activeIndex = idx;
+        this.swiperRef.nativeElement.swiper?.slideTo(idx, 0);
+      }
+    });
+
+    this.swiperRef.nativeElement.addEventListener('swiperslidechange', () => {
+      const swiper = this.swiperRef.nativeElement.swiper;
+      if (!swiper) return;
+      const idx = swiper.activeIndex;
+      if (idx === this.activeIndex) return;
+      this.activeIndex = idx;
+      const id = DASHBOARDS[idx]?.id;
+      if (id) {
+        this.router.navigate(['../', id], { relativeTo: this.route, replaceUrl: true });
+      }
     });
   }
 
-  formatCurrency(amount: number): string {
-    return '$' + amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  jumpTo(idx: number) {
+    this.swiperRef.nativeElement.swiper?.slideTo(idx);
   }
 
-  truncate(str: string, len: number): string {
-    return str.length > len ? str.slice(0, len) + '…' : str;
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

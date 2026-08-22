@@ -1,0 +1,40 @@
+:host {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 12px;
+  padding: 24px;
+  opacity: 0.6;
+  text-align: center;
+}
+
+.placeholder__icon {
+  font-size: 48px;
+  color: var(--ion-color-medium);
+}
+
+.placeholder__title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--ion-text-color);
+}
+
+.placeholder__copy {
+  font-size: 0.85rem;
+  color: var(--ion-color-medium);
+  margin: 0;
+
+  a {
+    color: var(--ion-color-primary);
+    text-decoration: none;
+  }
+}

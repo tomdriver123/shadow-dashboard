@@ -1,75 +1,25 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-buttons slot="start">
-      <ion-menu-button></ion-menu-button>
-    </ion-buttons>
-    <ion-title>Shadow</ion-title>
-  </ion-toolbar>
-</ion-header>
+<ion-content [fullscreen]="true" [scrollY]="false">
+  <div class="shell-layout">
+    <nav class="shell-sidebar">
+      <button *ngFor="let d of dashboards; let i = index"
+              type="button"
+              class="sidebar-item"
+              [class.active]="activeIndex === i"
+              (click)="jumpTo(i)">
+        <ion-icon [name]="d.icon"></ion-icon>
+        <span>{{ d.title }}</span>
+      </button>
+    </nav>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Shadow</ion-title>
-    </ion-toolbar>
-  </ion-header>
-
-  <!-- Loading -->
-  <div class="placeholder" *ngIf="loading">
-    <ion-spinner name="crescent"></ion-spinner>
-  </div>
-
-  <!-- Error -->
-  <div class="placeholder" *ngIf="error && !loading">
-    <ion-icon name="alert-circle-outline" size="large"></ion-icon>
-    <p>Could not load finance data</p>
-  </div>
-
-  <!-- Widget Grid -->
-  <div class="widget-grid" *ngIf="!loading && !error">
-
-    <!-- Balances Card -->
-    <ion-card class="widget-card">
-      <ion-card-header>
-        <ion-card-title>Balances</ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <div class="balance-list">
-          <div class="balance-row" *ngFor="let b of balances"
-               [class.balance--low]="b.current < 100 && b.type !== 'credit card'">
-            <div class="balance-label">{{ b.displayName }}</div>
-            <div class="balance-amount">
-              <span *ngIf="b.type !== 'credit card'">{{ formatCurrency(b.current) }}</span>
-              <span *ngIf="b.type === 'credit card'">
-                {{ formatCurrency(b.current) }} owed · {{ formatCurrency(b.available!) }} available
-              </span>
-            </div>
-          </div>
-        </div>
-        <div class="card-footer">
-          Updated {{ lastUpdated }}
-        </div>
-      </ion-card-content>
-    </ion-card>
-
-    <!-- Recent Transactions Card -->
-    <ion-card class="widget-card">
-      <ion-card-header>
-        <ion-card-title>Recent Transactions</ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <div class="txn-list">
-          <div class="txn-row" *ngFor="let t of recentTransactions">
-            <div class="txn-date">{{ t.date | date:'MMM d' }}</div>
-            <div class="txn-amount">{{ formatCurrency(t.amount) }}</div>
-            <span class="txn-category" [style.background-color]="categoryColors[t.category] || categoryColors['other']">
-              {{ t.category }}
-            </span>
-            <div class="txn-desc">{{ truncate(t.description, 25) }}</div>
-          </div>
-        </div>
-      </ion-card-content>
-    </ion-card>
-
+    <swiper-container #swiperEl
+                      class="shell-swiper"
+                      direction="vertical"
+                      [attr.initial-slide]="initialSlide">
+      <swiper-slide *ngFor="let d of dashboards">
+        <sh-dashboard-card [title]="d.title">
+          <ng-container *ngComponentOutlet="d.component"></ng-container>
+        </sh-dashboard-card>
+      </swiper-slide>
+    </swiper-container>
   </div>
 </ion-content>
