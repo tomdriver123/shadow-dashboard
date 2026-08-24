@@ -6,6 +6,7 @@
  *
  * Usage:
  *   node scripts/generate-jobs-data.js
+ *   node scripts/generate-jobs-data.js --liked-json   # prints liked rows as JSON to stdout, no file writes
  */
 
 const fs = require('fs');
@@ -47,15 +48,15 @@ function parseQueue(filePath) {
 
     if (!pastHeader || !trimmed.startsWith('|')) continue;
 
-    // Valid data row: split on '|' yields exactly 12 parts (leading/trailing empty)
+    // Valid data row: split on '|' yields exactly 14 parts (leading/trailing empty)
     const parts = trimmed.split('|');
-    if (parts.length !== 12) {
-      console.warn(`[jobs] Skipping malformed row at line ${lineNum}: expected 12 pipe-parts, got ${parts.length}`);
+    if (parts.length !== 14) {
+      console.warn(`[jobs] Skipping malformed row at line ${lineNum}: expected 14 pipe-parts, got ${parts.length}`);
       continue;
     }
 
-    // parts[0] and parts[11] are the empty strings surrounding the outer pipes
-    const [, id, date, company, role, url, source, salary_text, lane, scoreRaw, status] = parts;
+    // parts[0] and parts[13] are the empty strings surrounding the outer pipes
+    const [, id, date, company, role, url, source, salary_text, lane, scoreRaw, status, location, days_office] = parts;
 
     const score = Number(scoreRaw.trim());
     if (isNaN(score)) {
@@ -74,6 +75,8 @@ function parseQueue(filePath) {
       lane:       lane.trim(),
       score,
       status:     status.trim(),
+      location:   location.trim(),
+      daysOffice: days_office.trim(),
     });
   }
 
@@ -133,11 +136,20 @@ function parseFitBullets(digestDate, url) {
 function main() {
   const rows = parseQueue(QUEUE_FILE);
 
-  // Pending rows sorted by date ascending; take the last 3 (newest 3 pending).
-  // slice(-3) of an ascending sort gives oldest-first among the newest 3.
+  // --liked-json mode: print liked rows as JSON to stdout, no file writes.
+  if (process.argv.includes('--liked-json')) {
+    const liked = rows
+      .filter(r => r.status === 'liked')
+      .map(r => ({ id: r.id, url: r.url, company: r.company, role: r.role, lane: r.lane }));
+    console.log(JSON.stringify(liked));
+    return;
+  }
+
+  // Top 3 pending by score, tiebreak newer date first.
   const pending  = rows.filter(r => r.status === 'pending');
-  const sorted   = [...pending].sort((a, b) => a.date.localeCompare(b.date));
-  const selected = sorted.slice(-3);
+  const selected = [...pending]
+    .sort((a, b) => b.score - a.score || b.date.localeCompare(a.date))
+    .slice(0, 3);
 
   const recs = selected.map(row => ({
     id:         row.id,
@@ -152,6 +164,8 @@ function main() {
     score:      row.score,
     fitBullets: parseFitBullets(row.date, row.url),
     status:     row.status,
+    location:   row.location,
+    daysOffice: row.daysOffice,
   }));
 
   const output = {

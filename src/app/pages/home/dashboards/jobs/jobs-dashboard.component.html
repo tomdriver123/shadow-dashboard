@@ -32,6 +32,8 @@
               [class.badge--lane-b]="rec.lane === 'lane-b'"
               [class.badge--lane-a]="rec.lane === 'lane-a'">{{ rec.lane }}</span>
             <span class="badge badge--score">{{ rec.score }}/10</span>
+            <span class="badge badge--location"
+              *ngIf="rec.location && rec.location !== 'remote'">{{ rec.location === 'nyc-hybrid' ? 'NYC' : 'MIA' }}&nbsp;{{ rec.daysOffice === '1' || rec.daysOffice === '2' ? '≤' + rec.daysOffice + 'd' : '?d' }}</span>
           </div>
         </div>
 

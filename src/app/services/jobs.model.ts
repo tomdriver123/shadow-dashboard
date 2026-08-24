@@ -1,5 +1,5 @@
 export type JobLane = 'lane-a' | 'lane-b';
-export type JobStatus = 'pending' | 'liked' | 'passed' | 'applied';
+export type JobStatus = 'pending' | 'liked' | 'passed' | 'applied' | 'needs-tom' | 'blocked' | 'expired';
 export type JobSource = 'hn-hiring' | 'wellfound' | 'ai-jobs.net' | 'yc-startup' | 'anthropic' | 'websearch';
 
 export interface JobRec {
@@ -15,6 +15,8 @@ export interface JobRec {
   score: number;         // 1-10
   fitBullets: string[];  // exactly 3
   status: JobStatus;
+  location?: string;
+  daysOffice?: string;
 }
 
 export interface JobsData {
