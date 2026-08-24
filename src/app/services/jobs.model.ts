@@ -1,5 +1,5 @@
 export type JobLane = 'lane-a' | 'lane-b';
-export type JobStatus = 'pending' | 'liked' | 'passed' | 'applied' | 'needs-tom' | 'blocked' | 'expired';
+export type JobStatus = 'pending' | 'queued' | 'manual' | 'liked' | 'passed' | 'applied' | 'needs-tom' | 'blocked' | 'expired';
 export type JobSource = 'hn-hiring' | 'wellfound' | 'ai-jobs.net' | 'yc-startup' | 'anthropic' | 'websearch';
 
 export interface JobRec {

@@ -6,7 +6,7 @@
  *
  * Usage:
  *   node scripts/generate-jobs-data.js
- *   node scripts/generate-jobs-data.js --liked-json   # prints liked rows as JSON to stdout, no file writes
+ *   node scripts/generate-jobs-data.js --liked-json   # prints the applier feed (queued + liked rows) as JSON, no file writes
  */
 
 const fs = require('fs');
@@ -136,20 +136,24 @@ function parseFitBullets(digestDate, url) {
 function main() {
   const rows = parseQueue(QUEUE_FILE);
 
-  // --liked-json mode: print liked rows as JSON to stdout, no file writes.
+  // --liked-json mode: print the applier feed (queued + liked rows) as JSON to stdout, no file writes.
+  // Flag name kept for compat with job-apply-runner.sh; 'queued' = scan auto lane, 'liked' = 👍 promote.
   if (process.argv.includes('--liked-json')) {
     const liked = rows
-      .filter(r => r.status === 'liked')
+      .filter(r => r.status === 'liked' || r.status === 'queued')
       .map(r => ({ id: r.id, url: r.url, company: r.company, role: r.role, lane: r.lane }));
     console.log(JSON.stringify(liked));
     return;
   }
 
-  // Top 3 pending by score, tiebreak newer date first.
-  const pending  = rows.filter(r => r.status === 'pending');
-  const selected = [...pending]
+  // Display order: queued (auto-applying) first, then manual leads, then top legacy pending by score. Cap 6.
+  const queued  = rows.filter(r => r.status === 'queued');
+  const manual  = rows.filter(r => r.status === 'manual');
+  const pending = rows.filter(r => r.status === 'pending');
+  const pendingByScore = [...pending]
     .sort((a, b) => b.score - a.score || b.date.localeCompare(a.date))
     .slice(0, 3);
+  const selected = [...queued, ...manual, ...pendingByScore].slice(0, 6);
 
   const recs = selected.map(row => ({
     id:         row.id,
@@ -170,7 +174,8 @@ function main() {
 
   const output = {
     generatedAt:  new Date().toISOString(),
-    pendingCount: pending.length,
+    // "active" rows: not yet applied/killed — queued (auto lane) + manual leads + legacy pending.
+    pendingCount: queued.length + manual.length + pending.length,
     recs,
   };
 
@@ -182,7 +187,7 @@ function main() {
     process.exit(1);
   }
 
-  console.log(`Generated jobs.json: ${pending.length} pending, showing ${recs.length}`);
+  console.log(`Generated jobs.json: ${queued.length} queued, ${manual.length} manual, ${pending.length} pending, showing ${recs.length}`);
   console.log(`  Output: ${OUTPUT}`);
 }
 

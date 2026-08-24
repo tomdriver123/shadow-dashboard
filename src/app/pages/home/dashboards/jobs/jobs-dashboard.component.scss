@@ -126,6 +126,16 @@
   color: #f0a500;
 }
 
+.badge--queued {
+  background: rgba(16, 185, 129, 0.22);
+  color: #10b981;
+}
+
+.badge--manual {
+  background: rgba(240, 165, 0, 0.22);
+  color: #f59e0b;
+}
+
 .fit-bullets {
   margin: 0 0 12px;
   padding-left: 18px;
