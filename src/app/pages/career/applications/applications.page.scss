@@ -1,0 +1,245 @@
+// ── Palette (career-ui-brief.md; hardcoded per page, no shared partial) ────
+:host {
+  --career-accent: #f59e0b;
+  --career-awaiting: #3b82f6;
+  --career-advanced: #059669;
+  --career-rejected: #ef4444;
+  --career-muted: rgba(255, 255, 255, 0.28);
+}
+
+.applications-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 12px 16px 48px;
+}
+
+// ── Shared markup (career-ui-brief.md, copied verbatim) ─────────────────────
+
+.section { margin: 18px 0; }
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sh-text-secondary);
+  margin: 0 0 10px;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  line-height: 1.5;
+}
+
+.filter-row { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 12px; }
+
+.toggle-btn {
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: var(--sh-text-body);
+
+  &.active {
+    background: rgba(245, 158, 11, 0.16);
+    border-color: rgba(245, 158, 11, 0.5);
+    color: #fcd34d;
+  }
+}
+
+.career-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th {
+    text-align: left;
+    font-weight: 600;
+    color: var(--sh-text-secondary);
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  td {
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-variant-numeric: tabular-nums;
+  }
+
+  tr[routerLink] { cursor: pointer; }
+}
+
+.card-list { display: flex; flex-direction: column; gap: 8px; }
+.card-row {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+// ── Status badge colors ──────────────────────────────────────────────────
+.badge--awaiting { background: rgba(59, 130, 246, 0.16); color: #93c5fd; }
+.badge--advanced { background: rgba(5, 150, 105, 0.18); color: #34d399; }
+.badge--accent   { background: rgba(245, 158, 11, 0.18); color: #fcd34d; }
+.badge--rejected { background: rgba(239, 68, 68, 0.16); color: #fca5a5; }
+.badge--muted    { background: rgba(255, 255, 255, 0.08); color: var(--sh-text-secondary); }
+
+// ── Page-specific ────────────────────────────────────────────────────────
+
+ion-segment { margin: 12px 0 4px; }
+
+.state-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 48px 16px;
+  text-align: center;
+
+  ion-spinner { --color: var(--sh-text-secondary); }
+  ion-icon { font-size: 44px; color: var(--sh-text-secondary); }
+  p { color: var(--sh-text-secondary); margin: 0; font-size: 0.85rem; }
+}
+
+.state-placeholder--inline { padding: 24px 16px; }
+
+.empty-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--sh-text-primary);
+  margin: 0;
+}
+
+.empty-sub { font-size: 0.85rem; color: var(--sh-text-secondary); margin: 0; }
+
+.search-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--sh-text-primary);
+  font-size: 14px;
+  margin: 12px 0 4px;
+  box-sizing: border-box;
+
+  &::placeholder { color: var(--sh-text-secondary); }
+  &:focus { outline: none; border-color: rgba(245, 158, 11, 0.5); }
+}
+
+.filter-block { margin-bottom: 2px; }
+.filter-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sh-text-secondary);
+  margin: 10px 0 4px;
+}
+
+.toggle-btn--reset {
+  color: var(--sh-text-secondary);
+  border-style: dashed;
+}
+
+.count-line {
+  font-size: 12px;
+  color: var(--sh-text-secondary);
+  margin: 4px 0 10px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--sh-text-body);
+  font-variant-numeric: tabular-nums;
+}
+
+.chip--muted { color: var(--sh-text-secondary); }
+
+// Submitted mobile cards
+.card-row--link { cursor: pointer; }
+
+// Queue cards, post-vote (jobs-dashboard.component.scss .rec-card.voted precedent)
+.card-row--voted { opacity: 0.55; transition: opacity 0.2s ease; }
+
+.card-row__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.card-row__title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.card-row__company { font-size: 0.95rem; font-weight: 700; color: var(--sh-text-primary); }
+.card-row__role { font-size: 0.82rem; color: var(--sh-text-secondary); }
+
+.card-row__meta {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.meta-date { font-size: 0.75rem; color: var(--sh-text-secondary); }
+
+// Queue cards
+.card-row__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-top: 10px;
+  margin-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.post-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--career-accent);
+  text-decoration: none;
+
+  ion-icon { font-size: 1rem; }
+  &:hover { text-decoration: underline; }
+}
+
+.verdict-btns { display: flex; gap: 8px; }
+
+.verdict-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  transition: background 0.15s, border-color 0.15s;
+
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+  &.liked.active { background: rgba(22, 163, 74, 0.13); border-color: #16a34a; }
+  &.passed.active { background: rgba(220, 38, 38, 0.13); border-color: #dc2626; }
+}
+
+.btn-spinner { width: 14px; height: 14px; --color: var(--sh-text-secondary); }
+
+@media (max-width: 640px) {
+  .applications-content { padding: 8px 10px 40px; }
+}

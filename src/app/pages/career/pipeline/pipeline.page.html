@@ -1,0 +1,87 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/career"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Pipeline</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="pipeline-content">
+
+    <div class="loading-container" *ngIf="loading">
+      <ion-spinner name="crescent"></ion-spinner>
+    </div>
+
+    <div class="error-container" *ngIf="error">
+      <ion-icon name="warning-outline" size="large"></ion-icon>
+      <p>Could not load the pipeline.</p>
+    </div>
+
+    <ng-container *ngIf="!loading && !error">
+      <div class="empty-state" *ngIf="pipeline.length === 0">
+        No pipeline files yet. Shadow creates one when a company replies.
+      </div>
+
+      <ng-container *ngIf="pipeline.length > 0">
+
+        <!-- Desktop: horizontal board, one column per stage -->
+        <div class="board desktop-only">
+          <div class="board-col" *ngFor="let col of columns">
+            <div class="board-col__header">
+              <span class="board-col__label">{{ col.label }}</span>
+              <span class="board-col__count">{{ col.count }}</span>
+            </div>
+            <div class="board-col__body">
+              <div class="board-col__empty" *ngIf="col.items.length === 0">none</div>
+              <ng-container *ngFor="let opp of col.items">
+                <ng-container *ngTemplateOutlet="cardTpl; context: { $implicit: opp }"></ng-container>
+              </ng-container>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mobile: stacked sections, empty ones collapsed to a one line header -->
+        <div class="stacked mobile-only">
+          <div class="stacked-section" *ngFor="let col of columns">
+            <div class="stacked-section__header">
+              <span>{{ col.label }}</span>
+              <span class="stacked-section__count">{{ col.count }}</span>
+            </div>
+            <div class="card-list stacked-section__body" *ngIf="col.items.length > 0">
+              <ng-container *ngFor="let opp of col.items">
+                <ng-container *ngTemplateOutlet="cardTpl; context: { $implicit: opp }"></ng-container>
+              </ng-container>
+            </div>
+          </div>
+        </div>
+
+      </ng-container>
+    </ng-container>
+
+  </div>
+</ion-content>
+
+<ng-template #cardTpl let-opp>
+  <a class="card-row pipeline-card" [routerLink]="['/tabs/career/pipeline', opp.id]">
+    <div class="pipeline-card__top">
+      <span class="pipeline-card__company">{{ opp.company ?? 'Unknown company' }}</span>
+      <span class="chip">{{ opp.employment }}</span>
+    </div>
+    <div class="pipeline-card__role">{{ opp.role ?? 'Unknown role' }}</div>
+    <div class="pipeline-card__meta">
+      <span class="chip chip--salary">{{ opp.salaryText || 'salary unknown' }}</span>
+      <span class="pipeline-card__points">{{ opp.points !== null ? (opp.points + ' pts') : '—' }}</span>
+    </div>
+    <div class="pipeline-card__bottom">
+      <span
+        class="badge ball-chip"
+        *ngIf="opp.ball === 'tom' || opp.ball === 'them'"
+        [class.ball-chip--tom]="opp.ball === 'tom'"
+        [class.ball-chip--them]="opp.ball === 'them'"
+      >{{ ballLabel(opp.ball) }}</span>
+      <span class="pipeline-card__date" *ngIf="nextEventDate(opp) as d">{{ d | date:'MMM d' }}</span>
+    </div>
+  </a>
+</ng-template>

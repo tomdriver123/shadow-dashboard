@@ -1,0 +1,303 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Career</ion-title>
+    <ion-buttons slot="end">
+      <ion-note *ngIf="generatedAt">Synced {{ generatedAt }}</ion-note>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Career</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <!-- Loading -->
+  <div class="loading-container" *ngIf="loading">
+    <ion-spinner name="crescent"></ion-spinner>
+  </div>
+
+  <!-- Error -->
+  <div class="error-container" *ngIf="error">
+    <ion-icon name="warning-outline" size="large"></ion-icon>
+    <p>Could not load career data. Run <code>node scripts/generate-career-data.js</code> to generate it.</p>
+  </div>
+
+  <!-- Content -->
+  <div class="career-content" *ngIf="!loading && !error && data as data">
+
+    <!-- ── CONTEXT STRIP ────────────────────────────────────────────── -->
+    <div class="context-strip">
+      <span class="chip chip--accent">Day {{ data.context.huntDay }} of the hunt</span>
+      <span class="chip">{{ data.kpis.thisWeek }} application{{ data.kpis.thisWeek === 1 ? '' : 's' }} this week</span>
+      <span class="chip">Last day {{ data.context.lastDay | date:'MMM d' }}, {{ data.context.daysToLastDay }} day{{ data.context.daysToLastDay === 1 ? '' : 's' }}</span>
+    </div>
+
+    <!-- ── KPI GRID ─────────────────────────────────────────────────── -->
+    <section class="section">
+      <div class="stat-grid">
+        <a class="stat-tile" routerLink="/tabs/career/applications">
+          <div class="stat-tile__label">Applications</div>
+          <div class="stat-tile__value">{{ data.kpis.applications }}</div>
+          <div class="stat-tile__sub">+{{ data.kpis.thisWeek }} this week</div>
+        </a>
+
+        <a class="stat-tile" routerLink="/tabs/career/applications">
+          <div class="stat-tile__label">Awaiting response</div>
+          <div class="stat-tile__value">{{ data.kpis.awaiting }}</div>
+        </a>
+
+        <a class="stat-tile" routerLink="/tabs/career/pipeline">
+          <div class="stat-tile__label">Pipeline</div>
+          <div class="stat-tile__value">{{ data.kpis.pipelineActive }}</div>
+          <div class="stat-tile__sub">active</div>
+        </a>
+
+        <a class="stat-tile" routerLink="/tabs/career/schedule">
+          <div class="stat-tile__label">Next interview</div>
+          <div class="stat-tile__value" *ngIf="nextUpcomingDate as d; else noInterviewSet">{{ d | date:'EEE MMM d' }}</div>
+          <ng-template #noInterviewSet>
+            <div class="stat-tile__value stat-tile__value--muted">none set</div>
+          </ng-template>
+        </a>
+
+        <a class="stat-tile" routerLink="/tabs/career/applications">
+          <div class="stat-tile__label">Rejections</div>
+          <div class="stat-tile__value">{{ data.kpis.rejected }}</div>
+          <div class="stat-tile__sub">{{ responseRatePct }} response rate</div>
+        </a>
+
+        <a class="stat-tile" routerLink="/tabs/career/drills">
+          <div class="stat-tile__label">Drills</div>
+          <div class="stat-tile__value">{{ data.kpis.drillsLearned }} learned</div>
+          <div class="stat-tile__sub">{{ drillAccuracyPct }} accuracy</div>
+        </a>
+
+        <a class="stat-tile" routerLink="/tabs/career/drills">
+          <div class="stat-tile__label">Redo due</div>
+          <div class="stat-tile__value">{{ data.kpis.drillsDue }}</div>
+        </a>
+
+        <div class="stat-tile">
+          <div class="stat-tile__label">Knowledge base</div>
+          <ng-container *ngIf="!data.kb">
+            <div class="stat-tile__value stat-tile__value--muted">—</div>
+            <div class="stat-tile__sub">not started</div>
+          </ng-container>
+          <ng-container *ngIf="data.kb as kb">
+            <div class="stat-tile__value">{{ kb.topics }}</div>
+            <div class="stat-tile__sub">{{ kb.questions }} questions logged</div>
+          </ng-container>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── NEEDS YOU ────────────────────────────────────────────────── -->
+    <section class="section">
+      <h2 class="section-title">Needs you</h2>
+      <div class="card-list" *ngIf="data.needsYou.length; else needsYouEmpty">
+        <a
+          class="card-row needs-you-row"
+          *ngFor="let item of data.needsYou; trackBy: trackByIndex"
+          [routerLink]="item.link"
+        >
+          <ion-icon [name]="needsYouIcon(item.kind)" class="needs-you-row__icon"></ion-icon>
+          <div class="needs-you-row__body">
+            <div class="needs-you-row__title">{{ item.title }}</div>
+            <span class="chip needs-you-row__due" *ngIf="item.due">Due {{ item.due | date:'MMM d' }}</span>
+          </div>
+        </a>
+      </div>
+      <ng-template #needsYouEmpty>
+        <p class="empty-state">Nothing waiting on you.</p>
+      </ng-template>
+    </section>
+
+    <!-- ── NEXT UP ──────────────────────────────────────────────────── -->
+    <section class="section">
+      <div class="section-header-row">
+        <h2 class="section-title">Next up</h2>
+        <a class="see-all" routerLink="/tabs/career/schedule">See all</a>
+      </div>
+
+      <div class="card-list" *ngIf="upcomingPreview.length">
+        <div class="card-row event-row" *ngFor="let ev of upcomingPreview; trackBy: trackByIndex">
+          <div class="event-row__main">
+            <span class="event-row__company">{{ ev.company || '—' }}</span>
+            <span class="event-row__stage">{{ ev.stage || '—' }}</span>
+          </div>
+          <div class="event-row__meta">
+            <span>{{ ev.date | date:'EEE MMM d, h:mm a' }}</span>
+            <span *ngIf="ev.with">with {{ ev.with }}</span>
+            <a *ngIf="ev.link" [href]="ev.link" target="_blank" rel="noopener noreferrer">Join link</a>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="!upcomingPreview.length">
+        <p class="empty-state">No interviews scheduled. Pipeline items waiting on them:</p>
+        <div class="card-list" *ngIf="pipelineWaitingOnThem.length">
+          <div class="card-row event-row" *ngFor="let p of pipelineWaitingOnThem; trackBy: trackByIndex">
+            <div class="event-row__main">
+              <span class="event-row__company">{{ p.company || '—' }}</span>
+            </div>
+            <div class="event-row__meta">
+              <span>{{ p.nextAction || '—' }}</span>
+            </div>
+          </div>
+        </div>
+        <p class="empty-state" *ngIf="!pipelineWaitingOnThem.length">No pipeline files yet. Shadow creates one when a company replies.</p>
+      </div>
+    </section>
+
+    <!-- ── APPLICATIONS PER WEEK ────────────────────────────────────── -->
+    <section class="section">
+      <div class="section-header-row">
+        <h2 class="section-title">Applications per week</h2>
+        <div class="toggle-row">
+          <button class="toggle-btn" [class.active]="weeklyView === 'chart'" (click)="setWeeklyView('chart')">Chart</button>
+          <button class="toggle-btn" [class.active]="weeklyView === 'table'" (click)="setWeeklyView('table')">Table</button>
+        </div>
+      </div>
+
+      <div class="chart-wrap" *ngIf="weeklyView === 'chart'">
+        <canvas #weeklyChart></canvas>
+      </div>
+
+      <ng-container *ngIf="weeklyView === 'table'">
+        <div class="desktop-only table-container">
+          <table class="career-table">
+            <thead>
+              <tr><th>Week</th><th>Awaiting</th><th>Advanced</th><th>Rejected</th><th>Submitted</th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let w of weeklyRows; trackBy: trackByIndex">
+                <td>{{ w.weekStart | date:'MMM d' }}</td>
+                <td>{{ w.awaiting }}</td>
+                <td>{{ w.advanced }}</td>
+                <td>{{ w.rejected }}</td>
+                <td>{{ w.submitted }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="mobile-only card-list">
+          <div class="card-row" *ngFor="let w of weeklyRows; trackBy: trackByIndex">
+            <div class="card-row__title">{{ w.weekStart | date:'MMM d' }}</div>
+            <div class="card-row__meta">
+              <span>Awaiting {{ w.awaiting }}</span>
+              <span>Advanced {{ w.advanced }}</span>
+              <span>Rejected {{ w.rejected }}</span>
+              <span>Submitted {{ w.submitted }}</span>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+    </section>
+
+    <!-- ── FUNNEL ───────────────────────────────────────────────────── -->
+    <section class="section">
+      <div class="section-header-row">
+        <h2 class="section-title">Funnel</h2>
+        <div class="toggle-row">
+          <button class="toggle-btn" [class.active]="funnelView === 'chart'" (click)="setFunnelView('chart')">Chart</button>
+          <button class="toggle-btn" [class.active]="funnelView === 'table'" (click)="setFunnelView('table')">Table</button>
+        </div>
+      </div>
+
+      <div class="funnel" *ngIf="funnelView === 'chart'">
+        <div class="funnel-row" *ngFor="let stage of funnelRows; trackBy: trackByIndex">
+          <div class="funnel-row__top">
+            <span class="funnel-row__label">{{ stage.stage }}</span>
+            <span class="funnel-row__stats">
+              <span class="funnel-row__count">{{ stage.count }}</span>
+              <span class="funnel-row__conv" *ngIf="stage.conversionPct !== null">{{ stage.conversionPct }}%</span>
+            </span>
+          </div>
+          <div class="progress-track funnel-row__track">
+            <div class="progress-fill" [style.width.%]="stage.widthPct" [style.background]="stage.color"></div>
+          </div>
+        </div>
+      </div>
+
+      <ng-container *ngIf="funnelView === 'table'">
+        <div class="desktop-only table-container">
+          <table class="career-table">
+            <thead><tr><th>Stage</th><th>Count</th><th>Conversion</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let stage of funnelRows; trackBy: trackByIndex">
+                <td>{{ stage.stage }}</td>
+                <td>{{ stage.count }}</td>
+                <td>{{ stage.conversionPct !== null ? (stage.conversionPct + '%') : '—' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="mobile-only card-list">
+          <div class="card-row" *ngFor="let stage of funnelRows; trackBy: trackByIndex">
+            <div class="card-row__title">{{ stage.stage }}</div>
+            <div class="card-row__meta">
+              <span>{{ stage.count }} applications</span>
+              <span *ngIf="stage.conversionPct !== null">{{ stage.conversionPct }}% conversion</span>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+    </section>
+
+    <!-- ── DRILL SNAPSHOT ───────────────────────────────────────────── -->
+    <section class="section">
+      <h2 class="section-title">Drills</h2>
+      <a class="card-row drill-snapshot" routerLink="/tabs/career/drills">
+        <svg class="sparkline" viewBox="0 0 120 32" preserveAspectRatio="none" *ngIf="drillSparklinePoints">
+          <polyline [attr.points]="drillSparklinePoints" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <p class="empty-state" *ngIf="!drillSparklinePoints">Not enough drill history yet.</p>
+        <div class="drill-snapshot__counts">
+          <span>{{ data.kpis.drillsLearned }} learned</span>
+          <span>{{ data.kpis.drillsDue }} due</span>
+          <span>{{ drillsOverdueCount }} overdue</span>
+        </div>
+      </a>
+    </section>
+
+    <!-- ── MIX STRIP ────────────────────────────────────────────────── -->
+    <section class="section">
+      <h2 class="section-title">Mix</h2>
+      <div class="mix-row" *ngFor="let dim of mixDimensions; trackBy: trackByIndex">
+        <div class="mix-row__title">{{ dim.title }}</div>
+        <div class="mix-bar">
+          <div
+            class="mix-bar__segment"
+            *ngFor="let seg of dim.segments; trackBy: trackByIndex"
+            [style.width.%]="seg.pct"
+            [style.background]="seg.color"
+          ></div>
+        </div>
+        <div class="mix-row__legend">
+          <span class="mix-legend-item" *ngFor="let seg of dim.segments; trackBy: trackByIndex">
+            <span class="mix-legend-dot" [style.background]="seg.color"></span>{{ seg.key }} {{ seg.count }}
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── LINKEDIN VIEWS ───────────────────────────────────────────── -->
+    <section class="section" *ngIf="data.metrics.linkedinViews.length >= 2">
+      <h2 class="section-title">LinkedIn views</h2>
+      <div class="stat-tile linkedin-tile">
+        <div class="stat-tile__label">Profile views</div>
+        <div class="stat-tile__value">{{ latestLinkedinViews ?? '—' }}</div>
+        <svg class="sparkline" viewBox="0 0 120 32" preserveAspectRatio="none" *ngIf="linkedinSparklinePoints">
+          <polyline [attr.points]="linkedinSparklinePoints" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
+    </section>
+
+  </div>
+</ion-content>

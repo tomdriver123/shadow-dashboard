@@ -1,0 +1,138 @@
+// ── Palette (career tab) ─────────────────────────────────────────────────────
+:host {
+  --career-accent: #f59e0b;
+}
+
+// ── Layout ───────────────────────────────────────────────────────────────────
+
+.schedule-content {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 16px 24px 48px;
+}
+
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 50vh;
+  gap: 16px;
+  color: var(--ion-color-medium);
+
+  ion-icon { font-size: 48px; }
+}
+
+.empty-state {
+  color: var(--sh-text-secondary);
+  font-size: 14px;
+  text-align: center;
+  padding: 48px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+}
+
+.section { margin: 20px 0; }
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sh-text-secondary);
+  margin: 0 0 10px;
+}
+
+// ── Card list ────────────────────────────────────────────────────────────────
+
+.card-list { display: flex; flex-direction: column; gap: 8px; }
+
+.card-row {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+// ── Schedule rows ────────────────────────────────────────────────────────────
+
+.schedule-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: default;
+
+  &[routerlink] { cursor: pointer; }
+
+  &:hover { border-color: rgba(255, 255, 255, 0.14); }
+}
+
+.schedule-row__time {
+  flex: 0 0 auto;
+  width: 78px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sh-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.schedule-row__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.schedule-row__company {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--sh-text-primary);
+}
+
+.schedule-row__stage {
+  font-size: 12px;
+  color: var(--sh-text-body);
+  margin-top: 2px;
+}
+
+.schedule-row__with {
+  font-size: 11px;
+  color: var(--sh-text-secondary);
+  margin-top: 2px;
+}
+
+.schedule-row__join {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--career-accent);
+  text-decoration: none;
+}
+
+// ── Earlier disclosure ───────────────────────────────────────────────────────
+
+.earlier-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--sh-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 2px;
+  cursor: pointer;
+
+  ion-icon { font-size: 14px; }
+
+  &:hover { color: var(--sh-text-primary); }
+}
+
+.earlier-list { margin-top: 10px; }
+
+// ── Responsive ───────────────────────────────────────────────────────────────
+
+@media (max-width: 640px) {
+  .schedule-content { padding: 12px 12px 40px; }
+  .schedule-row { gap: 10px; }
+  .schedule-row__time { width: 60px; font-size: 11px; }
+}

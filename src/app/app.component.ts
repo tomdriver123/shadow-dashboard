@@ -12,6 +12,7 @@ export class AppComponent {
     { title: 'Habits', url: '/tabs/habits', icon: 'calendar-outline' },
     { title: 'Agents', url: '/tabs/agents', icon: 'people-outline' },
     { title: 'Brain', url: '/tabs/brain', icon: 'bulb-outline' },
+    { title: 'Career', url: '/tabs/career', icon: 'briefcase-outline' },
   ];
 
   constructor() {}

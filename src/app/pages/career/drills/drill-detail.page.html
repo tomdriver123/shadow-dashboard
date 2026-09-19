@@ -1,0 +1,102 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/career/drills"></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ problem?.name ?? 'Drill' }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="detail-content">
+
+    <div class="loading-container" *ngIf="loading">
+      <ion-spinner name="crescent"></ion-spinner>
+    </div>
+
+    <div class="error-container" *ngIf="!loading && error">
+      <ion-icon name="warning-outline" size="large"></ion-icon>
+      <p>Could not load this drill.</p>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && !error && !problem">
+      <ion-icon name="help-circle-outline" size="large"></ion-icon>
+      <p>Problem not found. It may have been removed from the drill log.</p>
+      <a class="back-link" routerLink="/tabs/career/drills">Back to Drills</a>
+    </div>
+
+    <ng-container *ngIf="!loading && !error && problem as problem">
+
+      <!-- Header -->
+      <section class="section header-section">
+        <div class="header-top">
+          <h1 class="header-name">{{ problem.name }}</h1>
+          <span class="badge" [ngClass]="stateBadgeClass(problem.state)">{{ problem.state }}</span>
+        </div>
+        <div class="header-meta">
+          <span>{{ problem.pattern }}</span>
+          <span class="dot">·</span>
+          <span>{{ problem.topic }}</span>
+        </div>
+        <div class="header-due" *ngIf="problem.nextDue">Next due {{ formatDateOrDash(problem.nextDue) }}</div>
+      </section>
+
+      <!-- Redo queued -->
+      <section class="section" *ngIf="redoItem as redo">
+        <h2 class="section-title">Redo queued</h2>
+        <div class="redo-card">
+          <div class="redo-card__due">Due {{ formatDateOrDash(redo.due) }} · {{ redo.mode }}</div>
+          <p class="redo-card__reason">{{ redo.reason }}</p>
+        </div>
+      </section>
+
+      <!-- Attempt history -->
+      <section class="section">
+        <h2 class="section-title">Attempt history</h2>
+
+        <div class="empty-state" *ngIf="sortedAttempts.length === 0">
+          No attempts logged yet.
+        </div>
+
+        <ng-container *ngIf="sortedAttempts.length > 0">
+          <div class="desktop-only table-container">
+            <table class="career-table">
+              <thead>
+                <tr><th>Date</th><th>Mode</th><th>Score</th><th>Result</th></tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let a of sortedAttempts">
+                  <td>{{ formatDateOrDash(a.date) }}</td>
+                  <td>{{ a.mode }}</td>
+                  <td>{{ a.score }}</td>
+                  <td class="result-cell">{{ a.result || '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="mobile-only card-list">
+            <div class="card-row" *ngFor="let a of sortedAttempts">
+              <div class="card-row__top">
+                <span class="card-row__date">{{ formatDateOrDash(a.date) }}</span>
+                <span class="card-row__score">{{ a.score }}</span>
+              </div>
+              <div class="card-row__mode">{{ a.mode }}</div>
+              <p class="card-row__result">{{ a.result || '—' }}</p>
+            </div>
+          </div>
+        </ng-container>
+      </section>
+
+      <!-- External lookup -->
+      <section class="section">
+        <h2 class="section-title">Look it up</h2>
+        <div class="external-links">
+          <a class="toggle-btn" [href]="neetcodeUrl(problem.name)" target="_blank" rel="noopener">Search NeetCode</a>
+          <a class="toggle-btn" [href]="leetcodeUrl(problem.name)" target="_blank" rel="noopener">Search LeetCode</a>
+        </div>
+      </section>
+
+    </ng-container>
+  </div>
+</ion-content>

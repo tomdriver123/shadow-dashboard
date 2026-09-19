@@ -1,0 +1,261 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/career"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Applications</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="applications-content">
+    <div class="state-placeholder" *ngIf="loading">
+      <ion-spinner name="crescent"></ion-spinner>
+    </div>
+
+    <div class="state-placeholder" *ngIf="!loading && error">
+      <ion-icon name="alert-circle-outline" size="large"></ion-icon>
+      <p>Could not load career data. Run the career generator and reload.</p>
+    </div>
+
+    <ng-container *ngIf="!loading && !error">
+      <ion-segment [(ngModel)]="tab">
+        <ion-segment-button value="submitted">
+          <ion-label>Submitted</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="queue">
+          <ion-label>Queue</ion-label>
+        </ion-segment-button>
+      </ion-segment>
+
+      <!-- ── Submitted ────────────────────────────────────────────────── -->
+      <div class="section" *ngIf="tab === 'submitted'">
+        <input
+          class="search-input"
+          type="search"
+          placeholder="Search company or role"
+          [(ngModel)]="search"
+        />
+
+        <div class="filter-block">
+          <span class="filter-label">Status</span>
+          <div class="filter-row">
+            <button
+              class="toggle-btn"
+              *ngFor="let f of statusFilters"
+              [class.active]="statusFilter === f.value"
+              (click)="setStatusFilter(f.value)"
+            >{{ f.label }}</button>
+          </div>
+        </div>
+
+        <div class="filter-block">
+          <span class="filter-label">Lane</span>
+          <div class="filter-row">
+            <button
+              class="toggle-btn"
+              *ngFor="let f of laneFilters"
+              [class.active]="laneFilter === f.value"
+              (click)="setLaneFilter(f.value)"
+            >{{ f.label }}</button>
+          </div>
+        </div>
+
+        <div class="filter-block">
+          <span class="filter-label">Band</span>
+          <div class="filter-row">
+            <button
+              class="toggle-btn"
+              *ngFor="let f of bandFilters"
+              [class.active]="bandFilter === f.value"
+              (click)="setBandFilter(f.value)"
+            >{{ f.label }}</button>
+          </div>
+        </div>
+
+        <div class="filter-block">
+          <span class="filter-label">Location</span>
+          <div class="filter-row">
+            <button
+              class="toggle-btn"
+              *ngFor="let f of locationFilters"
+              [class.active]="locationFilter === f.value"
+              (click)="setLocationFilter(f.value)"
+            >{{ f.label }}</button>
+          </div>
+        </div>
+
+        <div class="filter-block">
+          <span class="filter-label">Sort</span>
+          <div class="filter-row">
+            <button
+              class="toggle-btn"
+              *ngFor="let s of sortOptions"
+              [class.active]="sortKey === s.value"
+              (click)="setSortKey(s.value)"
+            >{{ s.label }}</button>
+            <button class="toggle-btn toggle-btn--reset" *ngIf="filtersActive" (click)="resetFilters()">
+              Clear filters
+            </button>
+          </div>
+        </div>
+
+        <div class="count-line">{{ filteredApplications.length }} of {{ applications.length }}</div>
+
+        <div class="state-placeholder state-placeholder--inline" *ngIf="applications.length === 0">
+          <ion-icon name="briefcase-outline" size="large"></ion-icon>
+          <p class="empty-title">No applications yet</p>
+          <p class="empty-sub">Run job-apply or job-prep to submit one.</p>
+        </div>
+
+        <div
+          class="state-placeholder state-placeholder--inline"
+          *ngIf="applications.length > 0 && filteredApplications.length === 0"
+        >
+          <p>No applications match these filters.</p>
+        </div>
+
+        <ng-container *ngIf="filteredApplications.length > 0">
+          <!-- Desktop table -->
+          <div class="desktop-only">
+            <table class="career-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Company</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Points</th>
+                  <th>Score</th>
+                  <th>Lane</th>
+                  <th>Location</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  *ngFor="let app of filteredApplications"
+                  [routerLink]="['/tabs/career/applications', app.id]"
+                >
+                  <td>{{ app.date | date:'MMM d' }}</td>
+                  <td>{{ app.company }}</td>
+                  <td>{{ app.role }}</td>
+                  <td>
+                    <span class="badge" [ngClass]="statusBadgeClass(app.status)">{{ app.status }}</span>
+                    <span class="badge badge--muted" *ngIf="app.stale">stale</span>
+                  </td>
+                  <td>{{ app.points !== null ? app.points : '—' }}</td>
+                  <td>{{ app.score !== null ? app.score : '—' }}</td>
+                  <td>{{ laneLabel(app.lane) }}</td>
+                  <td>{{ locationLabel(app.location) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Mobile card list -->
+          <div class="mobile-only">
+            <div class="card-list">
+              <div
+                class="card-row card-row--link"
+                *ngFor="let app of filteredApplications"
+                [routerLink]="['/tabs/career/applications', app.id]"
+              >
+                <div class="card-row__top">
+                  <div class="card-row__title">
+                    <span class="card-row__company">{{ app.company }}</span>
+                    <span class="card-row__role">{{ app.role }}</span>
+                  </div>
+                  <span class="badge" [ngClass]="statusBadgeClass(app.status)">{{ app.status }}</span>
+                </div>
+                <div class="card-row__meta">
+                  <span class="meta-date">{{ app.date | date:'MMM d' }}</span>
+                  <span class="chip" *ngIf="app.points !== null">{{ app.points }} pts</span>
+                  <span class="chip chip--muted" *ngIf="app.points === null">— salary unknown</span>
+                  <span class="chip" *ngIf="app.score !== null">{{ app.score }}/10</span>
+                  <span class="badge badge--muted" *ngIf="app.stale">stale</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+
+      <!-- ── Queue ────────────────────────────────────────────────────── -->
+      <div class="section" *ngIf="tab === 'queue'">
+        <div class="filter-block">
+          <span class="filter-label">Status</span>
+          <div class="filter-row">
+            <button
+              class="toggle-btn"
+              *ngFor="let f of queueStatusFilters"
+              [class.active]="queueStatusFilter === f.value"
+              (click)="setQueueStatusFilter(f.value)"
+            >{{ f.label }}</button>
+          </div>
+        </div>
+
+        <div class="count-line">{{ filteredQueue.length }} of {{ queueNotApplied.length }}</div>
+
+        <div class="state-placeholder state-placeholder--inline" *ngIf="queueNotApplied.length === 0">
+          <ion-icon name="search-outline" size="large"></ion-icon>
+          <p class="empty-title">Queue is empty</p>
+          <p class="empty-sub">Run /job-scan to find leads.</p>
+        </div>
+
+        <div
+          class="state-placeholder state-placeholder--inline"
+          *ngIf="queueNotApplied.length > 0 && filteredQueue.length === 0"
+        >
+          <p>No queue rows match this filter.</p>
+        </div>
+
+        <div class="card-list" *ngIf="filteredQueue.length > 0">
+          <div class="card-row" *ngFor="let row of filteredQueue" [class.card-row--voted]="hasVoted(row)">
+            <div class="card-row__top">
+              <div class="card-row__title">
+                <span class="card-row__company">{{ row.company }}</span>
+                <span class="card-row__role">{{ row.role }}</span>
+              </div>
+              <span class="badge" [ngClass]="queueBadgeClass(row.status)">{{ queueBadgeLabel(row.status) }}</span>
+            </div>
+
+            <div class="card-row__meta">
+              <span class="chip" *ngIf="row.score !== null">{{ row.score }}/10</span>
+              <span class="chip">Lane {{ laneLabel(row.lane) }}</span>
+              <span class="chip">{{ row.salaryText || 'not posted' }}</span>
+              <span class="chip">{{ locationLabel(row.location) }}</span>
+              <span class="chip" *ngIf="row.points !== null">{{ row.points }} pts</span>
+              <span class="chip chip--muted" *ngIf="row.points === null">salary unknown</span>
+            </div>
+
+            <div class="card-row__footer">
+              <a class="post-link" [href]="row.url" target="_blank" rel="noopener">
+                <ion-icon name="open-outline"></ion-icon> View posting
+              </a>
+              <div class="verdict-btns" *ngIf="showVerdictButtons(row)">
+                <button
+                  class="verdict-btn liked"
+                  [class.active]="verdictState[row.id] === 'liked'"
+                  [disabled]="!!verdictState[row.id]"
+                  (click)="vote(row, 'liked')"
+                >
+                  <ion-spinner *ngIf="isVoting(row)" name="crescent" class="btn-spinner"></ion-spinner>
+                  <span *ngIf="!isVoting(row)">👍</span>
+                </button>
+                <button
+                  class="verdict-btn passed"
+                  [class.active]="verdictState[row.id] === 'passed'"
+                  [disabled]="!!verdictState[row.id]"
+                  (click)="vote(row, 'passed')"
+                >
+                  <ion-spinner *ngIf="isVoting(row)" name="crescent" class="btn-spinner"></ion-spinner>
+                  <span *ngIf="!isVoting(row)">👎</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</ion-content>

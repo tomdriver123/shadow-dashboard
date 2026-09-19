@@ -1,0 +1,235 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/career"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Drills</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="drills-content">
+
+    <div class="loading-container" *ngIf="loading">
+      <ion-spinner name="crescent"></ion-spinner>
+    </div>
+
+    <div class="error-container" *ngIf="!loading && error">
+      <ion-icon name="warning-outline" size="large"></ion-icon>
+      <p>Could not load drill data.</p>
+    </div>
+
+    <ng-container *ngIf="!loading && !error && data">
+
+      <!-- ── KPI mini row ──────────────────────────────────────────── -->
+      <section class="section">
+        <div class="stat-grid stat-grid--kpi">
+          <div class="stat-tile">
+            <div class="stat-tile__label">Learned</div>
+            <div class="stat-tile__value">{{ learnedCount }}</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-tile__label">Due today</div>
+            <div class="stat-tile__value">{{ dueTodayCount }}</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-tile__label">Overdue</div>
+            <div class="stat-tile__value">{{ overdueCount }}</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-tile__label">Struggling</div>
+            <div class="stat-tile__value">{{ strugglingCount }}</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-tile__label">Guided accuracy</div>
+            <div class="stat-tile__value">{{ guidedAccuracyLabel }}</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Filters + search ──────────────────────────────────────── -->
+      <section class="section">
+        <div class="filter-row">
+          <button
+            class="toggle-btn"
+            *ngFor="let f of filters"
+            [class.active]="activeFilter === f.value"
+            (click)="setFilter(f.value)"
+          >{{ f.label }}</button>
+        </div>
+        <input
+          class="search-input"
+          type="search"
+          placeholder="Search problems"
+          [(ngModel)]="search"
+        />
+      </section>
+
+      <!-- ── Problems ──────────────────────────────────────────────── -->
+      <section class="section">
+        <h2 class="section-title">Problems</h2>
+        <div class="count-line">{{ filteredProblems.length }} of {{ problems.length }}</div>
+
+        <div class="empty-state" *ngIf="problems.length === 0">
+          No drills logged yet.
+        </div>
+        <div class="empty-state" *ngIf="problems.length > 0 && filteredProblems.length === 0">
+          No problems match this filter.
+        </div>
+
+        <ng-container *ngIf="filteredProblems.length > 0">
+          <div class="desktop-only table-container">
+            <table class="career-table">
+              <thead>
+                <tr>
+                  <th>Problem</th>
+                  <th>Topic</th>
+                  <th>Attempts</th>
+                  <th>Last score</th>
+                  <th>Next due</th>
+                  <th>State</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let p of filteredProblems" [routerLink]="['/tabs/career/drills', p.id]">
+                  <td>{{ p.name }}</td>
+                  <td>{{ p.topic }}</td>
+                  <td>{{ p.attempts.length }}</td>
+                  <td class="ellipsis-cell" [title]="p.lastScore ?? ''">{{ p.lastScore ?? '—' }}</td>
+                  <td>{{ formatDateOrDash(p.nextDue) }}</td>
+                  <td><span class="badge" [ngClass]="stateBadgeClass(p.state)">{{ p.state }}</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="mobile-only card-list">
+            <div
+              class="card-row card-row--link"
+              *ngFor="let p of filteredProblems"
+              [routerLink]="['/tabs/career/drills', p.id]"
+            >
+              <div class="card-row__top">
+                <div class="card-row__title">
+                  <span class="card-row__name">{{ p.name }}</span>
+                  <span class="card-row__topic">{{ p.topic }}</span>
+                </div>
+                <span class="badge" [ngClass]="stateBadgeClass(p.state)">{{ p.state }}</span>
+              </div>
+              <div class="card-row__meta">
+                <span class="chip">{{ p.attempts.length }} attempt{{ p.attempts.length === 1 ? '' : 's' }}</span>
+                <span class="chip" *ngIf="p.lastScore">{{ p.lastScore }}</span>
+                <span class="chip chip--muted">Next {{ formatDateOrDash(p.nextDue) }}</span>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+      </section>
+
+      <!-- ── Chart 2: Guided decision rate ─────────────────────────── -->
+      <section class="section">
+        <div class="section-header-row">
+          <h2 class="section-title">Guided decision rate</h2>
+          <div class="toggle-row">
+            <button class="toggle-btn" [class.active]="chartView === 'chart'" (click)="setChartView('chart')">Chart</button>
+            <button class="toggle-btn" [class.active]="chartView === 'table'" (click)="setChartView('table')">Table</button>
+          </div>
+        </div>
+
+        <div class="empty-state" *ngIf="accuracySeries.length === 0">
+          No drill sessions logged yet.
+        </div>
+
+        <ng-container *ngIf="accuracySeries.length > 0">
+          <ng-container *ngIf="chartView === 'chart'">
+            <div class="chart-wrap">
+              <canvas #accuracyChart></canvas>
+            </div>
+            <div class="sparkline-row">
+              <div class="sparkline-row__label">Cumulative learned</div>
+              <svg viewBox="0 0 120 32" preserveAspectRatio="none" class="sparkline">
+                <polyline
+                  *ngIf="cumulativeSparklinePoints"
+                  [attr.points]="cumulativeSparklinePoints"
+                  fill="none"
+                  stroke="#059669"
+                  stroke-width="2"
+                  stroke-linejoin="round"
+                  stroke-linecap="round"
+                />
+              </svg>
+              <div class="sparkline-row__value">{{ latestCumulativeLearned }}</div>
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="chartView === 'table'">
+            <div class="desktop-only table-container">
+              <table class="career-table">
+                <thead>
+                  <tr><th>Date</th><th>Guided rate</th><th>Cumulative learned</th></tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let pt of accuracySeries; trackBy: trackByIndex">
+                    <td>{{ formatDateOrDash(pt.date) }}</td>
+                    <td>{{ formatPct(pt.rate) }}</td>
+                    <td>{{ pt.cumulativeLearned }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="mobile-only card-list">
+              <div class="card-row" *ngFor="let pt of accuracySeries; trackBy: trackByIndex">
+                <div class="card-row__title">{{ formatDateOrDash(pt.date) }}</div>
+                <div class="card-row__meta">
+                  <span>Rate {{ formatPct(pt.rate) }}</span>
+                  <span>Learned {{ pt.cumulativeLearned }}</span>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+        </ng-container>
+      </section>
+
+      <!-- ── Per topic bars ────────────────────────────────────────── -->
+      <section class="section">
+        <h2 class="section-title">By topic</h2>
+        <div class="empty-state" *ngIf="patterns.length === 0">
+          No drill history yet.
+        </div>
+        <div class="topic-bars" *ngIf="patterns.length > 0">
+          <div class="topic-bar-row" *ngFor="let p of patterns">
+            <div class="topic-bar-label">{{ p.topic }}: {{ p.learned }}/{{ p.attempted }}</div>
+            <div class="topic-bar-track" [style.width.%]="topicBarWidthPct(p.attempted)">
+              <div class="topic-bar-fill" [style.width.%]="topicLearnedPct(p)"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Current position ──────────────────────────────────────── -->
+      <section class="section">
+        <button class="collapse-toggle" (click)="positionExpanded = !positionExpanded" [class.expanded]="positionExpanded">
+          <ion-icon [name]="positionExpanded ? 'chevron-up-outline' : 'chevron-down-outline'"></ion-icon>
+          Current position
+        </button>
+        <div class="collapse-body" *ngIf="positionExpanded">
+          <markdown *ngIf="currentPositionMd; else noPosition" [data]="currentPositionMd"></markdown>
+          <ng-template #noPosition><p class="empty-copy">No current position notes yet.</p></ng-template>
+        </div>
+      </section>
+
+      <!-- ── Weak spots ─────────────────────────────────────────────── -->
+      <section class="section">
+        <button class="collapse-toggle" (click)="weakSpotsExpanded = !weakSpotsExpanded" [class.expanded]="weakSpotsExpanded">
+          <ion-icon [name]="weakSpotsExpanded ? 'chevron-up-outline' : 'chevron-down-outline'"></ion-icon>
+          Weak spots
+        </button>
+        <div class="collapse-body" *ngIf="weakSpotsExpanded">
+          <markdown *ngIf="weakSpotsMd; else noWeak" [data]="weakSpotsMd"></markdown>
+          <ng-template #noWeak><p class="empty-copy">No weak spots logged yet.</p></ng-template>
+        </div>
+      </section>
+
+    </ng-container>
+  </div>
+</ion-content>

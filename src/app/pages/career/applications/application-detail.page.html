@@ -1,0 +1,163 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/career/applications"></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ application?.company || 'Application' }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="detail-content">
+    <div class="state-placeholder" *ngIf="loading">
+      <ion-spinner name="crescent"></ion-spinner>
+    </div>
+
+    <div class="state-placeholder" *ngIf="!loading && error">
+      <ion-icon name="alert-circle-outline" size="large"></ion-icon>
+      <p>Could not load career data.</p>
+    </div>
+
+    <div class="state-placeholder" *ngIf="!loading && !error && !application">
+      <ion-icon name="help-circle-outline" size="large"></ion-icon>
+      <p>Application not found.</p>
+    </div>
+
+    <ng-container *ngIf="!loading && !error && application">
+      <!-- Header -->
+      <div class="section detail-header">
+        <div class="detail-header__top">
+          <h1 class="detail-header__company">{{ application.company }}</h1>
+          <span class="badge" [ngClass]="statusBadgeClass(application.status)">{{ application.status }}</span>
+        </div>
+        <div class="detail-header__role">{{ application.role }}</div>
+        <div class="detail-header__meta">
+          <span>Applied {{ application.date | date:'MMM d, y' }}</span>
+          <span *ngIf="application.daysSinceApplied !== null">{{ application.daysSinceApplied }} days ago</span>
+          <span class="badge badge--muted" *ngIf="application.stale">stale</span>
+        </div>
+      </div>
+
+      <!-- Posting -->
+      <div class="section">
+        <div class="section-title">Posting</div>
+        <a
+          *ngIf="application.url"
+          class="external-link"
+          [href]="application.url"
+          target="_blank"
+          rel="noopener"
+        >
+          <ion-icon name="open-outline"></ion-icon> View posting
+        </a>
+        <p class="body-text" *ngIf="!application.url">
+          {{ application.sourceNote || 'No posting link on file.' }}
+        </p>
+      </div>
+
+      <!-- Comp -->
+      <div class="section">
+        <div class="section-title">Comp</div>
+        <div class="comp-row">
+          <span class="comp-value">{{ application.salaryText || 'not posted' }}</span>
+          <span class="chip" *ngIf="application.points !== null">{{ application.points }} pts</span>
+          <span class="chip chip--muted" *ngIf="application.points === null">— salary unknown</span>
+        </div>
+        <ng-container *ngIf="application.pointsBasis as basis; else noBasis">
+          <p class="basis-line">
+            Based on salary midpoint
+            {{ basis.salaryMid !== null ? (basis.salaryMid | currency:'USD':'symbol':'1.0-0') : 'unknown' }},
+            {{ basis.daysOffice }} office {{ basis.daysOffice === 1 ? 'day' : 'days' }}, {{ basis.employment }}.
+          </p>
+          <ul class="assumptions" *ngIf="basis.assumptions.length">
+            <li *ngFor="let a of basis.assumptions">{{ a }}</li>
+          </ul>
+        </ng-container>
+        <ng-template #noBasis>
+          <p class="basis-line muted">No points basis recorded.</p>
+        </ng-template>
+      </div>
+
+      <!-- Fit -->
+      <div class="section">
+        <div class="section-title">Fit</div>
+        <div class="fit-meta">
+          <span class="chip" *ngIf="application.score !== null">Score {{ application.score }}/10</span>
+          <span class="chip" *ngIf="application.lane">Lane {{ laneLabel(application.lane) }}</span>
+          <span class="chip chip--muted" *ngIf="application.score === null && !application.lane">
+            No fit data recorded.
+          </span>
+        </div>
+        <ul class="fit-bullets" *ngIf="application.fitBullets.length">
+          <li *ngFor="let b of application.fitBullets">{{ b }}</li>
+        </ul>
+      </div>
+
+      <!-- Timeline -->
+      <div class="section">
+        <div class="section-title">Timeline</div>
+        <ul class="timeline">
+          <li>
+            <span class="timeline__label">Applied</span>
+            <span class="timeline__value">{{ application.date | date:'MMM d, y' }}</span>
+          </li>
+          <li *ngIf="application.rejectedDate">
+            <span class="timeline__label">Rejected</span>
+            <span class="timeline__value">{{ application.rejectedDate | date:'MMM d, y' }}</span>
+            <p class="timeline__note" *ngIf="application.nextAction">{{ application.nextAction }}</p>
+          </li>
+          <li *ngIf="application.followUpDate">
+            <span class="timeline__label">Follow up</span>
+            <span class="timeline__value">{{ application.followUpDate | date:'MMM d, y' }}</span>
+          </li>
+          <li *ngIf="application.nextAction && !application.rejectedDate">
+            <span class="timeline__label">Next action</span>
+            <span class="timeline__value">{{ application.nextAction }}</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Resume -->
+      <div class="section">
+        <div class="section-title">Resume</div>
+        <p class="body-text" *ngIf="application.resumeVariant">{{ application.resumeVariant }}</p>
+        <p class="body-text muted" *ngIf="application.variantSlug">
+          PDF at vault/projects/job-hunt/resume/variants/{{ application.variantSlug }}/Thomas-Driver-Resume.pdf
+        </p>
+        <p class="body-text muted" *ngIf="!application.resumeVariant && !application.variantSlug">
+          No resume variant recorded for this application.
+        </p>
+      </div>
+
+      <!-- Pipeline link -->
+      <div class="section" *ngIf="application.pipelineId">
+        <div class="section-title">Pipeline</div>
+        <a class="external-link" [routerLink]="['/tabs/career/pipeline', application.pipelineId]">
+          <ion-icon name="git-network-outline"></ion-icon> View pipeline opportunity
+        </a>
+      </div>
+
+      <!-- Comms -->
+      <div class="section">
+        <div class="section-title">Comms</div>
+        <ul class="comms-list" *ngIf="comms.length; else noComms">
+          <li class="comms-row" *ngFor="let c of comms">
+            <div class="comms-row__head">
+              <span class="comms-date">{{ c.date | date:'MMM d' }}</span>
+              <span
+                class="comms-arrow"
+                [class.comms-arrow--in]="c.direction === 'in'"
+                [attr.aria-label]="c.direction === 'in' ? 'Incoming' : 'Outgoing'"
+              >{{ c.direction === 'in' ? '←' : '→' }}</span>
+              <span class="comms-who">{{ c.who }}</span>
+            </div>
+            <p class="comms-summary">{{ c.summary }}</p>
+          </li>
+        </ul>
+        <ng-template #noComms>
+          <p class="body-text muted">No logged communication for this company yet.</p>
+        </ng-template>
+      </div>
+    </ng-container>
+  </div>
+</ion-content>

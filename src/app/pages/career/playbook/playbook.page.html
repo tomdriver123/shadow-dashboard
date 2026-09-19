@@ -1,0 +1,106 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/career"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Playbook</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="playbook-content">
+
+    <div class="loading-container" *ngIf="loading">
+      <ion-spinner name="crescent"></ion-spinner>
+    </div>
+
+    <div class="error-container" *ngIf="!loading && error">
+      <ion-icon name="warning-outline" size="large"></ion-icon>
+      <p>Could not load playbook data.</p>
+    </div>
+
+    <ng-container *ngIf="!loading && !error && data">
+
+      <!-- Resume -->
+      <section class="section">
+        <h2 class="section-title">Resume</h2>
+        <button class="collapse-toggle" (click)="resumeExpanded = !resumeExpanded" [class.expanded]="resumeExpanded">
+          <ion-icon [name]="resumeExpanded ? 'chevron-up-outline' : 'chevron-down-outline'"></ion-icon>
+          Base resume
+        </button>
+        <div class="collapse-body" *ngIf="resumeExpanded">
+          <markdown *ngIf="baseResumeMd; else noResume" [data]="baseResumeMd"></markdown>
+          <ng-template #noResume><p class="empty-copy">No base resume on file yet.</p></ng-template>
+        </div>
+      </section>
+
+      <!-- Variants -->
+      <section class="section">
+        <h2 class="section-title">Variants</h2>
+        <div class="count-line">{{ filteredVariants.length }} of {{ variants.length }}</div>
+        <input
+          class="search-input"
+          type="search"
+          placeholder="Search slug, title, company"
+          [(ngModel)]="search"
+          (ngModelChange)="resetVariantPaging()"
+        />
+
+        <div class="empty-state" *ngIf="variants.length === 0">
+          No resume variants yet.
+        </div>
+        <div class="empty-state" *ngIf="variants.length > 0 && filteredVariants.length === 0">
+          No variants match "{{ search }}".
+        </div>
+
+        <div class="card-list" *ngIf="visibleVariants.length > 0">
+          <div class="card-row" *ngFor="let v of visibleVariants">
+            <div class="card-row__top">
+              <span class="card-row__name">{{ v.title || v.slug }}</span>
+              <div class="chip-row">
+                <span class="chip chip--pdf" *ngIf="v.hasPdf">PDF</span>
+                <span class="chip chip--doctype" *ngIf="!isResumeDoc(v)">{{ v.docType }}</span>
+              </div>
+            </div>
+            <div class="card-row__meta" *ngIf="v.company">
+              {{ v.company }}<ng-container *ngIf="v.role"> · {{ v.role }}</ng-container>
+            </div>
+            <div class="card-row__meta">{{ formatDateOrDash(v.created) }}</div>
+            <div class="card-row__path">variants/{{ v.slug }}/Thomas-Driver-Resume.pdf</div>
+          </div>
+        </div>
+
+        <button class="show-more-btn" *ngIf="hasMoreVariants" (click)="showMoreVariants()">
+          Show more ({{ remainingVariantsCount }} remaining)
+        </button>
+      </section>
+
+      <!-- Strategy docs -->
+      <section class="section">
+        <h2 class="section-title">Strategy docs</h2>
+        <div class="empty-state" *ngIf="docs.length === 0">
+          No strategy docs yet.
+        </div>
+        <div class="doc-accordion" *ngIf="docs.length > 0">
+          <div class="doc-item" *ngFor="let doc of docs">
+            <button class="collapse-toggle" (click)="toggleDoc(doc.id)" [class.expanded]="isDocExpanded(doc.id)">
+              <ion-icon [name]="isDocExpanded(doc.id) ? 'chevron-up-outline' : 'chevron-down-outline'"></ion-icon>
+              {{ doc.title }}
+            </button>
+            <div class="collapse-body" *ngIf="isDocExpanded(doc.id)">
+              <markdown [data]="doc.md"></markdown>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Lessons -->
+      <section class="section">
+        <h2 class="section-title">Lessons</h2>
+        <markdown *ngIf="lessonsMd" [data]="lessonsMd"></markdown>
+        <p class="empty-copy" *ngIf="!lessonsMd">No lessons file yet.</p>
+      </section>
+
+    </ng-container>
+  </div>
+</ion-content>

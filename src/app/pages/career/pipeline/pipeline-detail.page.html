@@ -1,0 +1,149 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/career/pipeline"></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ opp?.company ?? 'Pipeline' }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="detail-content">
+
+    <div class="loading-container" *ngIf="loading">
+      <ion-spinner name="crescent"></ion-spinner>
+    </div>
+
+    <div class="error-container" *ngIf="error">
+      <ion-icon name="warning-outline" size="large"></ion-icon>
+      <p>Could not load this opportunity.</p>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && !error && !opp">
+      <ion-icon name="help-circle-outline" size="large"></ion-icon>
+      <p>Opportunity not found. It may have been removed or renamed.</p>
+      <a class="back-link" routerLink="/tabs/career/pipeline">Back to Pipeline</a>
+    </div>
+
+    <ng-container *ngIf="!loading && !error && opp as opp">
+
+      <!-- Header -->
+      <section class="section header-section">
+        <div class="header-top">
+          <div>
+            <h1 class="header-company">{{ opp.company ?? 'Unknown company' }}</h1>
+            <div class="header-role">{{ opp.role ?? 'Unknown role' }}</div>
+          </div>
+          <span class="badge" [ngClass]="overallStatusClass(opp.status)">{{ opp.status }}</span>
+        </div>
+
+        <div class="header-chips">
+          <span class="chip">{{ opp.employment }}</span>
+          <span class="chip" *ngIf="opp.location">{{ opp.location }}</span>
+        </div>
+
+        <div class="header-row">
+          <span class="header-row__salary">{{ opp.salaryText || 'salary unknown' }}</span>
+          <span class="header-row__source" *ngIf="opp.salarySource">Source: {{ opp.salarySource }}</span>
+        </div>
+
+        <div class="header-row">
+          <span class="header-row__points">{{ opp.points !== null ? (opp.points + ' pts') : '—' }}</span>
+          <span class="header-row__basis" *ngIf="pointsBasisText(opp)">{{ pointsBasisText(opp) }}</span>
+        </div>
+      </section>
+
+      <!-- Their process -->
+      <section class="section" *ngIf="opp.process.length">
+        <h2 class="section-title">Their process</h2>
+        <ol class="process-list">
+          <li class="process-step" *ngFor="let step of processSteps" [class]="'process-step--' + step.marker">
+            <span class="process-step__marker"></span>
+            <span class="process-step__text">{{ step.text }}</span>
+          </li>
+        </ol>
+      </section>
+
+      <!-- Stages timeline -->
+      <section class="section" *ngIf="opp.stages.length">
+        <h2 class="section-title">Stages</h2>
+        <div class="card-list">
+          <div class="card-row stage-row" *ngFor="let stage of opp.stages">
+            <div class="stage-row__top">
+              <span class="stage-row__name">{{ stage.name || stage.type }}</span>
+              <span class="badge badge--muted">{{ stage.type }}</span>
+              <span class="badge" [ngClass]="stageStatusClass(stage.status)">{{ stage.status }}</span>
+            </div>
+            <div class="stage-row__meta">
+              <span class="stage-row__date" *ngIf="stage.date">{{ stage.date | date:'EEE MMM d, h:mm a' }}</span>
+              <span class="stage-row__with" *ngIf="stage.with">with {{ stage.with }}</span>
+              <a class="stage-row__link" *ngIf="stage.link" [href]="stage.link" target="_blank" rel="noopener">Join</a>
+            </div>
+            <div class="stage-row__notes" *ngIf="stage.notes">{{ stage.notes }}</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Next -->
+      <section class="section">
+        <h2 class="section-title">Next</h2>
+        <div class="next-row">
+          <span
+            class="badge ball-chip"
+            *ngIf="opp.ball === 'tom' || opp.ball === 'them'"
+            [class.ball-chip--tom]="opp.ball === 'tom'"
+            [class.ball-chip--them]="opp.ball === 'them'"
+          >{{ ballLabel(opp.ball) }}</span>
+          <span class="next-row__action" *ngIf="opp.nextAction">{{ opp.nextAction }}</span>
+          <span class="next-row__due" *ngIf="opp.nextActionDue">Due {{ opp.nextActionDue | date:'MMM d' }}</span>
+        </div>
+        <div
+          class="next-row__empty"
+          *ngIf="opp.ball !== 'tom' && opp.ball !== 'them' && !opp.nextAction && !opp.nextActionDue"
+        >Nothing pending.</div>
+      </section>
+
+      <!-- Contacts -->
+      <section class="section" *ngIf="opp.contacts.length">
+        <h2 class="section-title">Contacts</h2>
+        <div class="card-list">
+          <div class="card-row contact-row" *ngFor="let c of opp.contacts">
+            <div class="contact-row__name">{{ c.name }}</div>
+            <div class="contact-row__role">{{ c.role }}</div>
+            <a class="contact-row__email" *ngIf="c.email" [href]="'mailto:' + c.email">{{ c.email }}</a>
+            <div class="contact-row__phone" *ngIf="c.phone">{{ c.phone }}</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Prep notes -->
+      <section class="section" *ngIf="opp.prepNotesMd">
+        <h2 class="section-title">Prep notes</h2>
+        <markdown class="prep-notes" [data]="opp.prepNotesMd"></markdown>
+      </section>
+
+      <!-- Links -->
+      <section class="section">
+        <h2 class="section-title">Links</h2>
+        <a
+          class="card-row link-row"
+          *ngIf="opp.applicationId"
+          [routerLink]="['/tabs/career/applications', opp.applicationId]"
+        >
+          <ion-icon name="document-text-outline"></ion-icon> View application
+        </a>
+
+        <div class="comms-empty" *ngIf="comms.length === 0">No comms logged for this opportunity yet.</div>
+        <div class="card-list" *ngIf="comms.length > 0">
+          <div class="card-row comms-row" *ngFor="let c of comms">
+            <span class="comms-row__date">{{ c.date | date:'MMM d' }}</span>
+            <span class="comms-row__dir" [title]="c.direction === 'in' ? 'Inbound' : 'Outbound'">{{ c.direction === 'in' ? '←' : '→' }}</span>
+            <span class="comms-row__who">{{ c.who }}</span>
+            <span class="comms-row__summary">{{ c.summary }}</span>
+          </div>
+        </div>
+      </section>
+
+    </ng-container>
+  </div>
+</ion-content>

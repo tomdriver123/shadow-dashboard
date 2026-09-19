@@ -1,0 +1,303 @@
+// ── Shadow Career palette ──────────────────────────────────────────────────
+// career-ui-brief.md; validated against the dark surface, do not substitute.
+:host {
+  --career-accent: #f59e0b;
+  --career-awaiting: #3b82f6;
+  --career-advanced: #059669;
+  --career-rejected: #ef4444;
+  --career-ramp-1: #fbbf24;
+  --career-ramp-2: #f59e0b;
+  --career-ramp-3: #d97706;
+  --career-ramp-4: #b45309;
+  --career-muted: rgba(255, 255, 255, 0.28);
+}
+
+// ── Layout ───────────────────────────────────────────────────────────────
+.career-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 16px 24px 48px;
+}
+
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+  gap: 16px;
+  color: var(--ion-color-medium);
+
+  ion-icon { font-size: 48px; }
+  code {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+}
+
+.empty-state {
+  color: var(--sh-text-secondary);
+  font-size: 13px;
+  margin: 4px 0;
+}
+
+// ── Context strip ───────────────────────────────────────────────────────
+.context-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 18px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--sh-text-secondary);
+
+  &--accent {
+    background: rgba(245, 158, 11, 0.16);
+    color: #fcd34d;
+  }
+}
+
+// ── Shared markup (career-ui-brief.md, copied verbatim) ───────────────────
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  @media (min-width: 768px) { grid-template-columns: repeat(4, 1fr); }
+}
+
+.stat-tile {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 12px 14px;
+
+  &__label {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--sh-text-secondary);
+  }
+  &__value {
+    font-size: 26px;
+    font-weight: 600;
+    line-height: 1.2;
+    margin-top: 4px;
+    color: var(--sh-text-primary);
+
+    &--muted { color: var(--sh-text-secondary); }
+  }
+  &__sub {
+    font-size: 12px;
+    color: var(--sh-text-secondary);
+    margin-top: 2px;
+  }
+}
+
+.section { margin: 18px 0; }
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sh-text-secondary);
+  margin: 0 0 10px;
+}
+
+.section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  .section-title { margin: 0 0 10px; }
+}
+
+.toggle-btn {
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: var(--sh-text-body);
+
+  &.active {
+    background: rgba(245, 158, 11, 0.16);
+    border-color: rgba(245, 158, 11, 0.5);
+    color: #fcd34d;
+  }
+}
+
+.career-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th {
+    text-align: left;
+    font-weight: 600;
+    color: var(--sh-text-secondary);
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  td {
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.card-list { display: flex; flex-direction: column; gap: 8px; }
+.card-row {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+// ── Overview specific ──────────────────────────────────────────────────
+.toggle-row { display: flex; gap: 6px; }
+
+.see-all {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--career-accent);
+  text-decoration: none;
+}
+
+// Needs you
+.needs-you-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+
+  &__icon { font-size: 18px; color: var(--career-accent); flex-shrink: 0; margin-top: 1px; }
+  &__body { flex: 1; min-width: 0; }
+  &__title { font-size: 13px; color: var(--sh-text-body); line-height: 1.4; }
+  &__due { margin-top: 6px; }
+}
+
+// Next up
+.event-row {
+  &__main { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  &__company { font-size: 14px; font-weight: 600; color: var(--sh-text-primary); }
+  &__stage { font-size: 12px; color: var(--sh-text-secondary); }
+  &__meta {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--sh-text-secondary);
+    margin-top: 4px;
+
+    a { color: var(--career-accent); }
+  }
+}
+
+.card-row__title { font-size: 13px; font-weight: 600; color: var(--sh-text-primary); }
+.card-row__meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--sh-text-secondary);
+  margin-top: 4px;
+}
+
+// Applications per week
+.chart-wrap { position: relative; height: 220px; width: 100%; }
+
+// Funnel
+.funnel-row {
+  padding: 6px 0;
+
+  &__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+  &__label { color: var(--sh-text-secondary); text-transform: capitalize; }
+  &__stats { display: flex; gap: 8px; align-items: baseline; }
+  &__count { color: var(--sh-text-primary); font-weight: 600; font-variant-numeric: tabular-nums; }
+  &__conv { color: var(--sh-text-secondary); font-size: 11px; }
+}
+
+.progress-track {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+
+  &.funnel-row__track { height: 8px; }
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+// Drill snapshot / LinkedIn sparklines
+.sparkline { width: 100%; height: 32px; display: block; }
+
+.drill-snapshot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-decoration: none;
+  color: inherit;
+
+  &__counts {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--sh-text-body);
+  }
+}
+
+.linkedin-tile {
+  max-width: 240px;
+
+  .sparkline { margin-top: 8px; }
+}
+
+// Mix strip
+.mix-row { margin-bottom: 14px; }
+.mix-row__title { font-size: 12px; color: var(--sh-text-secondary); margin-bottom: 6px; }
+.mix-bar {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+}
+.mix-bar__segment { height: 100%; }
+.mix-row__legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+.mix-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--sh-text-secondary);
+}
+.mix-legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }

@@ -28,6 +28,11 @@ const routes: Routes = [
           import('../pages/habits/habits.module').then(m => m.HabitsPageModule),
       },
       {
+        path: 'career',
+        loadChildren: () =>
+          import('../pages/career/career.module').then(m => m.CareerPageModule),
+      },
+      {
         path: '',
         redirectTo: 'home',
         pathMatch: 'full',

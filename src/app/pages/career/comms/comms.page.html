@@ -1,0 +1,130 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/career"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Comms</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="comms-content">
+
+    <div class="loading-container" *ngIf="loading">
+      <ion-spinner name="crescent"></ion-spinner>
+    </div>
+
+    <div class="error-container" *ngIf="error">
+      <ion-icon name="warning-outline" size="large"></ion-icon>
+      <p>Could not load comms.</p>
+    </div>
+
+    <ng-container *ngIf="!loading && !error">
+
+      <!-- Waiting on you / Waiting on them -->
+      <div class="waiting-grid">
+        <section class="section">
+          <h2 class="section-title">Waiting on you</h2>
+          <div class="empty-state empty-state--inline" *ngIf="waitingOnTom.length === 0">Nothing waiting on you.</div>
+          <div class="card-list" *ngIf="waitingOnTom.length > 0">
+            <div class="card-row waiting-row" *ngFor="let row of waitingOnTom" [routerLink]="row.link">
+              <div class="waiting-row__body">
+                <div class="waiting-row__company">{{ row.company }}</div>
+                <div class="waiting-row__summary">{{ row.summary }}</div>
+              </div>
+              <span class="chip due-chip" *ngIf="row.due" [class.due-chip--overdue]="isOverdue(row.due)">
+                Due {{ row.due | date:'MMM d' }}
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2 class="section-title">Waiting on them</h2>
+          <div class="empty-state empty-state--inline" *ngIf="waitingOnThem.length === 0">Nothing waiting on them.</div>
+          <div class="card-list" *ngIf="waitingOnThem.length > 0">
+            <div class="card-row waiting-row" *ngFor="let row of waitingOnThem" [routerLink]="row.link">
+              <div class="waiting-row__body">
+                <div class="waiting-row__company">{{ row.company }}</div>
+                <div class="waiting-row__summary">{{ row.summary }}</div>
+              </div>
+              <span class="chip due-chip" *ngIf="row.due" [class.due-chip--overdue]="isOverdue(row.due)">
+                Due {{ row.due | date:'MMM d' }}
+              </span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Full log -->
+      <section class="section">
+        <h2 class="section-title">Log</h2>
+
+        <div class="filter-row" *ngIf="uniqueCompanies.length > 0">
+          <button
+            class="toggle-btn"
+            *ngFor="let company of uniqueCompanies"
+            [class.active]="selectedCompany === company"
+            (click)="selectCompany(company)"
+            type="button"
+          >{{ company }}</button>
+        </div>
+
+        <input
+          class="search-box"
+          type="text"
+          placeholder="Search comms"
+          aria-label="Search comms"
+          [(ngModel)]="searchText"
+        />
+
+        <div class="empty-state" *ngIf="filteredComms.length === 0">No comms match.</div>
+
+        <div class="desktop-only" *ngIf="filteredComms.length > 0">
+          <div class="table-container">
+            <table class="career-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Company</th>
+                  <th>Dir</th>
+                  <th>Channel</th>
+                  <th>Who</th>
+                  <th>Summary</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let c of filteredComms" [routerLink]="c.pipelineId ? ['/tabs/career/pipeline', c.pipelineId] : null">
+                  <td>{{ c.date | date:'MMM d' }}</td>
+                  <td>{{ c.company }}</td>
+                  <td [title]="directionTitle(c.direction)">{{ directionArrow(c.direction) }}</td>
+                  <td>{{ c.channel }}</td>
+                  <td>{{ c.who }}</td>
+                  <td>{{ c.summary }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="mobile-only card-list" *ngIf="filteredComms.length > 0">
+          <div
+            class="card-row comms-card"
+            *ngFor="let c of filteredComms"
+            [routerLink]="c.pipelineId ? ['/tabs/career/pipeline', c.pipelineId] : null"
+          >
+            <div class="comms-card__top">
+              <span class="comms-card__date">{{ c.date | date:'MMM d' }}</span>
+              <span class="comms-card__company">{{ c.company }}</span>
+              <span [title]="directionTitle(c.direction)">{{ directionArrow(c.direction) }}</span>
+            </div>
+            <div class="comms-card__meta">{{ c.channel }} · {{ c.who }}</div>
+            <div class="comms-card__summary">{{ c.summary }}</div>
+          </div>
+        </div>
+      </section>
+
+    </ng-container>
+
+  </div>
+</ion-content>

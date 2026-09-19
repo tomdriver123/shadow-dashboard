@@ -1,0 +1,78 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/career"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Schedule</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="schedule-content">
+
+    <div class="loading-container" *ngIf="loading">
+      <ion-spinner name="crescent"></ion-spinner>
+    </div>
+
+    <div class="error-container" *ngIf="error">
+      <ion-icon name="warning-outline" size="large"></ion-icon>
+      <p>Could not load the schedule.</p>
+    </div>
+
+    <ng-container *ngIf="!loading && !error">
+      <div class="empty-state" *ngIf="upcomingGroups.length === 0">
+        Nothing scheduled. Check Needs you on the overview.
+      </div>
+
+      <section class="section" *ngFor="let group of upcomingGroups">
+        <h2 class="section-title">{{ group.groupDate | date:'EEEE, MMM d' }}</h2>
+        <div class="card-list">
+          <div
+            class="card-row schedule-row"
+            *ngFor="let evt of group.events"
+            [routerLink]="evt.pipelineId ? ['/tabs/career/pipeline', evt.pipelineId] : null"
+          >
+            <div class="schedule-row__time">{{ hasTime(evt.date) ? (evt.date | date:'h:mm a') : 'all day' }}</div>
+            <ng-container *ngTemplateOutlet="rowBody; context: { $implicit: evt }"></ng-container>
+          </div>
+        </div>
+      </section>
+
+      <section class="section earlier-section" *ngIf="pastEventsSorted.length > 0">
+        <button class="earlier-toggle" (click)="toggleEarlier()" type="button">
+          <ion-icon [name]="earlierExpanded ? 'chevron-down-outline' : 'chevron-forward-outline'"></ion-icon>
+          Earlier ({{ pastEventsSorted.length }})
+        </button>
+        <div class="card-list earlier-list" *ngIf="earlierExpanded">
+          <div
+            class="card-row schedule-row"
+            *ngFor="let evt of pastEventsSorted"
+            [routerLink]="evt.pipelineId ? ['/tabs/career/pipeline', evt.pipelineId] : null"
+          >
+            <div class="schedule-row__time">
+              {{ evt.date | date:'MMM d' }}<ng-container *ngIf="hasTime(evt.date)">, {{ evt.date | date:'h:mm a' }}</ng-container>
+            </div>
+            <ng-container *ngTemplateOutlet="rowBody; context: { $implicit: evt }"></ng-container>
+          </div>
+        </div>
+      </section>
+    </ng-container>
+
+  </div>
+</ion-content>
+
+<ng-template #rowBody let-evt>
+  <div class="schedule-row__body">
+    <div class="schedule-row__company">{{ evt.company ?? '—' }}</div>
+    <div class="schedule-row__stage">{{ evt.stage || evt.type }}</div>
+    <div class="schedule-row__with" *ngIf="evt.with">with {{ evt.with }}</div>
+  </div>
+  <a
+    class="schedule-row__join"
+    *ngIf="evt.link"
+    [href]="evt.link"
+    target="_blank"
+    rel="noopener"
+    (click)="$event.stopPropagation()"
+  >Join</a>
+</ng-template>
