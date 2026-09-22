@@ -35,7 +35,7 @@ const PERSONS = {
 };
 
 let JOB_HUNT_DIR, DIGEST_DIR, APPLICATIONS_FILE, QUEUE_FILE, PIPELINE_DIR, COMMS_FILE,
-    LINKEDIN_VIEWS_FILE, LESSONS_FILE, DRILL_LOG_FILE, KB_LOG_FILE, RESUME_DIR, VARIANTS_DIR,
+    LINKEDIN_VIEWS_FILE, LESSONS_FILE, DRILL_LOG_FILE, KB_LOG_FILE, KB_DIR, RESUME_DIR, VARIANTS_DIR,
     OUTPUT, HUNT_START, LAST_DAY;
 let PERSON, ROUTE_BASE, RESUME_PDF, FEATURES;
 
@@ -74,6 +74,7 @@ function configure(personKey) {
   LESSONS_FILE        = path.join(JOB_HUNT_DIR, 'lessons.md');
   DRILL_LOG_FILE      = path.join(JOB_HUNT_DIR, 'interview-prep', 'drill-log.md');
   KB_LOG_FILE         = path.join(JOB_HUNT_DIR, 'interview-prep', 'kb-log.md');
+  KB_DIR              = path.join(JOB_HUNT_DIR, 'interview-prep', 'kb');
   RESUME_DIR          = path.join(JOB_HUNT_DIR, 'resume');
   VARIANTS_DIR        = path.join(RESUME_DIR, 'variants');
   OUTPUT     = path.join(__dirname, '..', 'src', 'assets', 'data', p.out);
@@ -1016,6 +1017,405 @@ function parseKb(filePath) {
   return { topics, questions: rows.length, accuracy: passCount / rows.length };
 }
 
+// ── Knowledge base bank parser ─────────────────────────────────────────────
+// Reads interview-prep/kb/*.md, the per-topic question banks that back
+// /quiz. parseKb() above only sees the log's History table; this is the
+// only place that reads the Index (recall queue, single source of truth for
+// status/due/seen/label) and the full Questions detail blocks (stem,
+// options, why, rubric, model answer, attempts).
+
+// Same 5-level difficulty ramp target as the quiz skill. Duplicated here
+// rather than imported since this generator has no dependency on the vault
+// skill files; see vault/skills/quiz/SKILL.md, "Difficulty Ramp" (5
+// consecutive passes at a level promotes).
+const KB_PROMOTION_STREAK = 5;
+
+const KB_RESULT_PATTERNS = [
+  { re: /\brecall pass\b/, result: 'pass' },
+  { re: /\brecall miss\b/, result: 'miss' },
+  { re: /\bpass\b/, result: 'pass' },
+  { re: /\bmiss\b/, result: 'miss' },
+  { re: /\bguess\b/, result: 'guess' },
+  { re: /\bskip\b/, result: 'skip' },
+];
+
+// One Attempts line, e.g. "2026-09-19 mcq D miss tier0" or the recall shape
+// "2026-09-23 recall pass tier1" (no pick token). Tokenizes rather than one
+// fixed width regex because recall attempts are one field short. Returns
+// null on anything that does not fit, so the caller can warn and skip just
+// that line.
+function parseKbAttemptLine(rawLine) {
+  const line = rawLine.trim();
+  if (!line) return null;
+
+  const tierMatch = line.match(/\s+tier\s*(\d+)$/);
+  if (!tierMatch) return null;
+  const tier = Number(tierMatch[1]);
+  const withoutTier = line.slice(0, line.length - tierMatch[0].length).trim();
+
+  let result = null;
+  for (const { re, result: r } of KB_RESULT_PATTERNS) {
+    if (re.test(withoutTier)) { result = r; break; }
+  }
+  if (result === null) return null;
+
+  const tokens = withoutTier.split(/\s+/).filter(Boolean);
+  const date = tokens[0];
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const mode = tokens[1];
+  if (!mode) return null;
+
+  const resultWords = ['pass', 'miss', 'guess', 'skip'];
+  const rest = tokens.slice(2).filter(t => !resultWords.includes(t.toLowerCase()));
+  const pick = rest.length === 1 ? rest[0] : null;
+
+  return { date, mode, pick, result, tier };
+}
+
+// Reads one bank file's body with a single pass, fence aware line scan.
+// Mutates fileState (topic, file, indexRowsById, items, warn-tracking) in
+// place; kept separate from parseKbBank's file loop only to keep that loop
+// readable.
+function parseKbBankFile(body, file, topic) {
+  const indexRowsById = new Map();
+  let indexHeaderCells = null;
+  const items = []; // in encounter order; caller sorts globally
+
+  let topLevel = null; // null | 'index' | 'questions'
+  let currentBlock = null;
+  let openSection = null; // null | 'stem' | 'options' | 'why' | 'rubric' | 'model answer' | 'attempts'
+  let inFence = false;
+  let fenceChar = null;
+  let fenceLen = 0;
+
+  function newBlock(id) {
+    return {
+      id, key: null, kind: null, level: null, deck: null, firstAsked: null,
+      answer: null, versions: null,
+      _stemLines: [], _whyLines: [], _modelAnswerLines: [],
+      options: [], rubric: [], _attemptLines: [],
+    };
+  }
+
+  function finalizeBlock(block) {
+    if (!block) return;
+    const attempts = [];
+    for (const line of block._attemptLines) {
+      const parsed = parseKbAttemptLine(line);
+      if (!parsed) { warn(`kb/${file}: ${block.id}: unparseable Attempts line "${line}"`); continue; }
+      attempts.push(parsed);
+    }
+    items.push({
+      id: block.id,
+      topic,
+      key: block.key,
+      kind: block.kind,
+      level: block.level,
+      status: null, due: null, seen: null, label: null, // filled from Index below
+      stem: block._stemLines.join('\n').trim(),
+      options: block.options,
+      answer: block.answer,
+      why: block._whyLines.join('\n').trim(),
+      rubric: block.rubric,
+      modelAnswer: block._modelAnswerLines.join('\n').trim(),
+      versions: block.versions,
+      deck: block.deck,
+      firstAsked: block.firstAsked,
+      attempts,
+    });
+  }
+
+  // Lines inside a fence are never structure (no ## / ### / **Section** /
+  // field detection), but still belong to whatever raw or list section is
+  // currently open, so a fenced code sample inside a Stem is preserved
+  // verbatim rather than dropped.
+  function appendFenceLine(line) {
+    if (!currentBlock) return;
+    const t = line.trim();
+    if (openSection === 'stem') currentBlock._stemLines.push(line);
+    else if (openSection === 'why') currentBlock._whyLines.push(line);
+    else if (openSection === 'model answer') currentBlock._modelAnswerLines.push(line);
+    else if (openSection === 'options') {
+      if (t && currentBlock.options.length) {
+        const last = currentBlock.options[currentBlock.options.length - 1];
+        last.text = (last.text + ' ' + t).trim();
+      }
+    } else if (openSection === 'rubric') {
+      if (t) currentBlock.rubric.push(t.replace(/^\d+\.\s*/, ''));
+    } else if (openSection === 'attempts') {
+      if (t) currentBlock._attemptLines.push(t);
+    }
+  }
+
+  const lines = body.split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    // Fence state machine gates every structural check below.
+    const fenceMarker = line.match(/^\s{0,3}(`{3,}|~{3,})/);
+    if (!inFence) {
+      if (fenceMarker) {
+        inFence = true;
+        fenceChar = fenceMarker[1][0];
+        fenceLen = fenceMarker[1].length;
+        appendFenceLine(line);
+        continue;
+      }
+    } else {
+      if (fenceMarker && fenceMarker[1][0] === fenceChar && fenceMarker[1].length >= fenceLen) {
+        inFence = false;
+      }
+      appendFenceLine(line);
+      continue;
+    }
+
+    if (topLevel !== 'questions') {
+      if (trimmed === '## Index') { topLevel = 'index'; continue; }
+      if (trimmed === '## Questions') { topLevel = 'questions'; continue; }
+      if (topLevel === 'index') {
+        if (!trimmed.startsWith('|')) continue;
+        if (isSeparator(trimmed)) continue;
+        const cells = splitRow(trimmed);
+        if (cells.length < 8) continue;
+        if (cells[0] && cells[0].toLowerCase() === 'id') {
+          indexHeaderCells = cells.map(c => c.toLowerCase());
+          continue;
+        }
+        if (!indexHeaderCells) continue;
+        const row = {};
+        indexHeaderCells.forEach((h, i) => { row[h] = cells[i]; });
+        const due = row.due && row.due.toLowerCase() === 'none' ? null : (row.due || null);
+        const seen = row.seen !== undefined && row.seen !== '' ? Number(row.seen) : null;
+        indexRowsById.set(row.id, {
+          id: row.id, key: row.key, kind: row.kind, level: row.level,
+          status: row.status, due, seen, label: row.label,
+        });
+      }
+      continue;
+    }
+
+    // topLevel === 'questions'
+    const idMatch = trimmed.match(/^### (\S+)$/);
+    if (idMatch) {
+      finalizeBlock(currentBlock);
+      currentBlock = newBlock(idMatch[1]);
+      openSection = null;
+      continue;
+    }
+    if (!currentBlock) continue;
+
+    const headerMatch = trimmed.match(/^\*\*(Stem|Options|Why|Rubric|Model answer|Attempts)\*\*$/);
+    if (headerMatch) {
+      openSection = headerMatch[1].toLowerCase();
+      continue;
+    }
+
+    if (openSection === null) {
+      const fieldMatch = trimmed.match(/^(key|kind|level|deck|first asked|answer|versions):\s*(.*)$/);
+      if (fieldMatch) {
+        const [, fname, fval] = fieldMatch;
+        if (fname === 'key') currentBlock.key = fval;
+        else if (fname === 'kind') currentBlock.kind = fval;
+        else if (fname === 'level') currentBlock.level = fval;
+        else if (fname === 'deck') currentBlock.deck = fval;
+        else if (fname === 'first asked') currentBlock.firstAsked = fval;
+        else if (fname === 'answer') currentBlock.answer = fval.toUpperCase();
+        else if (fname === 'versions') currentBlock.versions = fval;
+      }
+      continue;
+    }
+
+    if (openSection === 'stem') { currentBlock._stemLines.push(line); continue; }
+    if (openSection === 'why') { currentBlock._whyLines.push(line); continue; }
+    if (openSection === 'model answer') { currentBlock._modelAnswerLines.push(line); continue; }
+
+    if (openSection === 'options') {
+      const optMatch = trimmed.match(/^([A-Z])[.)]\s+(.*)$/);
+      if (optMatch) {
+        currentBlock.options.push({ letter: optMatch[1], text: optMatch[2] });
+      } else if (trimmed && currentBlock.options.length) {
+        const last = currentBlock.options[currentBlock.options.length - 1];
+        last.text = (last.text + ' ' + trimmed).trim();
+      }
+      continue;
+    }
+
+    if (openSection === 'rubric') {
+      if (trimmed) currentBlock.rubric.push(trimmed.replace(/^\d+\.\s*/, ''));
+      continue;
+    }
+
+    if (openSection === 'attempts') {
+      if (trimmed) currentBlock._attemptLines.push(trimmed);
+      continue;
+    }
+  }
+  finalizeBlock(currentBlock);
+
+  // Reconcile blocks against the Index: Index supplies status/due/seen/label
+  // and wins on a level disagreement; warn (never throw) either direction.
+  const seenIds = new Set();
+  for (const item of items) {
+    seenIds.add(item.id);
+    const row = indexRowsById.get(item.id);
+    if (!row) {
+      warn(`kb/${file}: ${item.id} has a question block but no Index row`);
+      continue;
+    }
+    if (row.level && item.level && row.level !== item.level) {
+      warn(`kb/${file}: ${item.id} level mismatch (block says ${item.level}, Index says ${row.level}), using Index`);
+    }
+    item.level = row.level || item.level;
+    item.status = row.status;
+    item.due = row.due;
+    item.seen = row.seen;
+    item.label = row.label;
+  }
+  for (const id of indexRowsById.keys()) {
+    if (!seenIds.has(id)) warn(`kb/${file}: Index row ${id} has no matching question block`);
+  }
+
+  return { items };
+}
+
+// Directory of per-topic bank files (interview-prep/kb/<topic>[-N].md,
+// listed non recursively so a future decks/ subdirectory is excluded).
+// Returns null when the directory does not exist; parseKb() staying byte
+// identical is a hard constraint, so this and buildKb() below are additive
+// siblings, never edits to it.
+function parseKbBank(dir) {
+  if (!fs.existsSync(dir)) return null;
+
+  const files = fs.readdirSync(dir).filter(f => f.endsWith('.md')).sort();
+  const topicStates = new Map(); // topic -> state, count accumulates across rollover files
+  const allItems = [];
+  const seenGlobalIds = new Map(); // id -> file it was first seen in
+
+  for (const file of files) {
+    const filePath = path.join(dir, file);
+    let content;
+    try {
+      content = safeReadFile(filePath);
+    } catch (err) {
+      warn(`kb/${file}: read error: ${err.message}`);
+      continue;
+    }
+
+    const { data, body } = splitFrontmatter(content);
+    const filenameTopic = file.replace(/\.md$/, '').replace(/-\d+$/, '');
+    const topic = data.topic || filenameTopic;
+    const prefix = data.prefix || null;
+    // js-yaml returns null (not undefined) for a present-but-empty key, so
+    // check loosely for both to fall back to schema defaults.
+    const level = data.level != null ? data.level : 'fundamentals';
+    const streak = data.streak != null ? data.streak : 0;
+    const frontmatterCount = data.count != null ? data.count : 0;
+
+    if (!topicStates.has(topic)) {
+      // level/streak/prefix come from the first file encountered for this
+      // topic only; a rollover file's frontmatter never overwrites them.
+      topicStates.set(topic, { topic, prefix, level, streak, count: 0 });
+    }
+    const topicState = topicStates.get(topic);
+
+    const { items } = parseKbBankFile(body, file, topic);
+
+    if (items.length !== frontmatterCount) {
+      warn(`kb/${file}: frontmatter count (${frontmatterCount}) does not match parsed question blocks (${items.length})`);
+    }
+    topicState.count += items.length;
+
+    for (const item of items) {
+      if (seenGlobalIds.has(item.id)) {
+        warn(`kb: duplicate id ${item.id} in ${file} (already seen in ${seenGlobalIds.get(item.id)})`);
+        continue;
+      }
+      seenGlobalIds.set(item.id, file);
+      allItems.push(item);
+    }
+  }
+
+  allItems.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+
+  const byLevel = { fundamentals: { asked: 0, passed: 0 }, medium: { asked: 0, passed: 0 }, senior: { asked: 0, passed: 0 } };
+  let attemptCount = 0;
+  for (const item of allItems) {
+    for (const a of item.attempts) {
+      attemptCount++;
+      if (a.mode !== 'mcq') continue;
+      const bucket = byLevel[item.level];
+      if (!bucket) continue;
+      bucket.asked++;
+      if (a.result === 'pass') bucket.passed++;
+    }
+  }
+
+  const topicStatesOut = Array.from(topicStates.values()).map(t => ({
+    topic: t.topic,
+    prefix: t.prefix,
+    level: t.level,
+    streak: t.streak,
+    count: t.count,
+    toPromote: t.level === 'senior' ? null : Math.max(0, KB_PROMOTION_STREAK - t.streak),
+  }));
+
+  return { topicStates: topicStatesOut, items: allItems, byLevel, attemptCount };
+}
+
+// Combines the log (parseKb, unchanged) with the bank (parseKbBank) into
+// the payload the Career tab kb tile and pages read. Returns null only when
+// neither the log nor any bank file exists for this person.
+function buildKb(logPath, kbDir) {
+  const summary = parseKb(logPath);
+  const bank = parseKbBank(kbDir);
+  if (!summary && !bank) return null;
+
+  let activeDeck = null;
+  let currentPositionMd = '';
+  let weakSpotsMd = '';
+  if (fs.existsSync(logPath)) {
+    const { data, body } = splitFrontmatter(safeReadFile(logPath));
+    activeDeck = data.active_deck || null;
+    currentPositionMd = extractSection(body, '## Current position');
+    weakSpotsMd = extractSection(body, '## Weak spots');
+  }
+
+  const emptyByLevel = { fundamentals: { asked: 0, passed: 0 }, medium: { asked: 0, passed: 0 }, senior: { asked: 0, passed: 0 } };
+  const byLevel = bank ? bank.byLevel : emptyByLevel;
+  const topicStates = bank ? bank.topicStates : [];
+  const items = bank ? bank.items : [];
+  const recallDue = bank
+    ? bank.items
+        .filter(it => it.status === 'due')
+        .map(it => ({ id: it.id, topic: it.topic, label: it.label, due: it.due }))
+        .sort((a, b) => {
+          const ad = a.due || '', bd = b.due || '';
+          if (ad !== bd) return ad < bd ? -1 : 1;
+          return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+        })
+    : [];
+
+  // Parity check: the log's History table logs every event (mcq and
+  // recall), so its row count should match the bank's all-mode attempt
+  // count. A mismatch means a session updated one side but not the other.
+  if (bank && summary) {
+    if (bank.attemptCount !== summary.questions) {
+      warn(`kb parity: bank attempts (${bank.attemptCount}) does not match kb-log.md History rows (${summary.questions})`);
+    }
+  }
+
+  return {
+    ...(summary || { topics: 0, questions: 0, accuracy: null }),
+    activeDeck,
+    byLevel,
+    topicStates,
+    recallDue,
+    items,
+    currentPositionMd,
+    weakSpotsMd,
+  };
+}
+
 // ── Playbook (base resume, variants, strategy docs) ───────────────────────
 
 function readBaseResume() {
@@ -1311,7 +1711,7 @@ function main(personKey) {
   const linkedinViews = parseLinkedinViews(LINKEDIN_VIEWS_FILE);
   const drills = FEATURES.drills ? parseDrillLog(DRILL_LOG_FILE, now) : emptyDrills();
   const playbook = parsePlaybook();
-  const kb = FEATURES.kb ? parseKb(KB_LOG_FILE) : null;
+  const kb = FEATURES.kb ? buildKb(KB_LOG_FILE, KB_DIR) : null;
 
   const { metrics, needsYou } = computeMetrics(applications, queue, pipeline, comms, drills, linkedinViews, now);
   const context = buildContext(now);
