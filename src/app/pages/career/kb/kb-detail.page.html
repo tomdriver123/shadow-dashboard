@@ -1,0 +1,129 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button [defaultHref]="scope.base + '/kb'"></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ question?.id ?? 'Question' }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="detail-content">
+
+    <div class="loading-container" *ngIf="loading">
+      <ion-spinner name="crescent"></ion-spinner>
+    </div>
+
+    <div class="error-container" *ngIf="!loading && error">
+      <ion-icon name="warning-outline" size="large"></ion-icon>
+      <p>Could not load this question.</p>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && !error && !question">
+      <ion-icon name="help-circle-outline" size="large"></ion-icon>
+      <p>Question not found.</p>
+      <a class="back-link" [routerLink]="scope.base + '/kb'">Back to Knowledge base</a>
+    </div>
+
+    <ng-container *ngIf="!loading && !error && question as q">
+
+      <!-- Header -->
+      <section class="section header-section">
+        <div class="header-top">
+          <h1 class="header-name">{{ q.id }}</h1>
+          <span class="badge" [ngClass]="statusBadgeClass(q.status)">{{ statusLabel }}</span>
+        </div>
+        <div class="header-meta">
+          <span>{{ q.topic }}</span>
+          <span class="dot">·</span>
+          <span>{{ q.level }}</span>
+          <span class="dot">·</span>
+          <span>{{ q.kind }}</span>
+        </div>
+        <div class="header-due" *ngIf="q.due">Due {{ formatDateOrDash(q.due) }}</div>
+        <div class="header-versions" *ngIf="showVersions">Versions {{ q.versions }}</div>
+      </section>
+
+      <!-- Stem -->
+      <section class="section stem-body">
+        <markdown [data]="q.stem"></markdown>
+      </section>
+
+      <!-- Options (plain, no marks) -->
+      <section class="section">
+        <div class="option" *ngFor="let o of q.options">
+          <span class="option__letter">{{ o.letter }}</span>
+          <span class="option__text">{{ o.text }}</span>
+        </div>
+      </section>
+
+      <!-- Reveal -->
+      <section class="section">
+        <button class="collapse-toggle" (click)="toggleReveal()" [class.expanded]="revealed">
+          <ion-icon [name]="revealed ? 'chevron-up-outline' : 'chevron-down-outline'"></ion-icon>
+          Show the answer
+        </button>
+
+        <div class="collapse-body" *ngIf="revealed">
+
+          <div
+            class="option"
+            *ngFor="let o of q.options"
+            [class.option--correct]="isCorrect(o.letter)"
+            [class.option--picked]="isPicked(o.letter) && !isCorrect(o.letter)"
+          >
+            <span class="option__letter">{{ o.letter }}</span>
+            <span class="option__text">{{ o.text }}</span>
+            <span class="option__caption" *ngIf="isPicked(o.letter)">your pick</span>
+          </div>
+
+          <h2 class="section-title reveal-title">Why</h2>
+          <markdown [data]="q.why"></markdown>
+
+          <h2 class="section-title reveal-title">Rubric</h2>
+          <ul class="rubric-list">
+            <li *ngFor="let r of q.rubric">{{ r }}</li>
+          </ul>
+
+          <h2 class="section-title reveal-title">Model answer</h2>
+          <markdown [data]="q.modelAnswer"></markdown>
+
+          <h2 class="section-title reveal-title">Attempts</h2>
+          <div class="empty-state" *ngIf="sortedAttempts.length === 0">
+            No attempts logged yet.
+          </div>
+          <ng-container *ngIf="sortedAttempts.length > 0">
+            <div class="desktop-only table-container">
+              <table class="career-table">
+                <thead>
+                  <tr><th>Date</th><th>Mode</th><th>Pick</th><th>Result</th><th>Tier</th></tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let a of sortedAttempts">
+                    <td>{{ formatDateOrDash(a.date) }}</td>
+                    <td>{{ a.mode }}</td>
+                    <td>{{ a.pick ?? '—' }}</td>
+                    <td>{{ a.result }}</td>
+                    <td>{{ a.tier }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="mobile-only card-list">
+              <div class="card-row" *ngFor="let a of sortedAttempts">
+                <div class="card-row__top">
+                  <span class="card-row__date">{{ formatDateOrDash(a.date) }}</span>
+                  <span class="card-row__score">{{ a.result }}</span>
+                </div>
+                <div class="card-row__mode">{{ a.mode }} · pick {{ a.pick ?? '—' }} · tier {{ a.tier }}</div>
+              </div>
+            </div>
+          </ng-container>
+
+        </div>
+      </section>
+
+    </ng-container>
+  </div>
+</ion-content>

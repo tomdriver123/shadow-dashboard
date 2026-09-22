@@ -171,6 +171,11 @@ export class CareerPage implements OnInit, OnDestroy {
     return a === null || a === undefined ? '—' : `${Math.round(a * 100)}%`;
   }
 
+  get kbAccuracyPct(): string {
+    const a = this.data?.kb?.accuracy;
+    return a === null || a === undefined ? '—' : `${Math.round(a * 100)}%`;
+  }
+
   // Not exposed on CareerKpis or DrillsData; derived here from problem
   // state so the drill snapshot can show learned/due/overdue as three
   // distinct, mutually exclusive counts.

@@ -1,0 +1,193 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button [defaultHref]="scope.base"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Knowledge base</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="kb-content">
+
+    <div class="loading-container" *ngIf="loading">
+      <ion-spinner name="crescent"></ion-spinner>
+    </div>
+
+    <div class="error-container" *ngIf="!loading && error">
+      <ion-icon name="warning-outline" size="large"></ion-icon>
+      <p>Could not load knowledge base data.</p>
+    </div>
+
+    <ng-container *ngIf="!loading && !error && data">
+
+      <div class="empty-state" *ngIf="!data.kb">
+        No quiz sessions yet.
+      </div>
+
+      <ng-container *ngIf="data.kb as kb">
+
+        <!-- ── KPI mini row ──────────────────────────────────────────── -->
+        <section class="section">
+          <div class="stat-grid stat-grid--kpi">
+            <div class="stat-tile">
+              <div class="stat-tile__label">Questions logged</div>
+              <div class="stat-tile__value">{{ kb.questions }}</div>
+            </div>
+            <div class="stat-tile">
+              <div class="stat-tile__label">Accuracy</div>
+              <div class="stat-tile__value" [class.stat-tile__value--muted]="kb.accuracy === null">{{ accuracyPct }}</div>
+            </div>
+            <div class="stat-tile">
+              <div class="stat-tile__label">Recall queue</div>
+              <div class="stat-tile__value">{{ recallDue.length }}</div>
+              <div class="stat-tile__sub">{{ recallOverdueCount }} overdue</div>
+            </div>
+            <div class="stat-tile" *ngFor="let t of topicStates; trackBy: trackByIndex">
+              <div class="stat-tile__label">{{ t.topic }}</div>
+              <div class="stat-tile__value">{{ t.level }}</div>
+              <div class="stat-tile__sub">{{ topicPromoteLabel(t) }}</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Accuracy by level ─────────────────────────────────────── -->
+        <section class="section">
+          <div class="section-header-row">
+            <h2 class="section-title">Accuracy by level</h2>
+            <div class="section-sub">MCQ only</div>
+          </div>
+          <div class="level-meters">
+            <div class="level-meter" *ngFor="let level of levels">
+              <div class="level-meter__top">
+                <span class="level-meter__label">{{ level }}</span>
+                <span class="level-meter__pct">{{ formatPct(levelPct(level)) }}</span>
+              </div>
+              <div class="level-meter__value" [class.stat-tile__value--muted]="levelStat(level).asked === 0">
+                {{ levelStat(level).asked === 0 ? 'not asked yet' : levelStat(level).passed + ' of ' + levelStat(level).asked }}
+              </div>
+              <div class="meter-track">
+                <div class="meter-fill" [style.width.%]="levelMeterWidth(level)"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Filters + search ──────────────────────────────────────── -->
+        <section class="section">
+          <div class="filter-row">
+            <button
+              class="toggle-btn"
+              *ngFor="let f of filters"
+              [class.active]="activeFilter === f.value"
+              (click)="setFilter(f.value)"
+            >{{ f.label }}</button>
+          </div>
+          <div class="filter-row">
+            <button
+              class="toggle-btn"
+              *ngFor="let l of levelFilters"
+              [class.active]="activeLevel === l.value"
+              (click)="setLevelFilter(l.value)"
+            >{{ l.label }}</button>
+          </div>
+          <input
+            class="search-input"
+            type="search"
+            placeholder="Search questions"
+            [(ngModel)]="search"
+          />
+        </section>
+
+        <!-- ── Questions ─────────────────────────────────────────────── -->
+        <section class="section">
+          <h2 class="section-title">Questions</h2>
+          <div class="count-line">{{ filteredItems.length }} of {{ items.length }}</div>
+
+          <div class="empty-state" *ngIf="items.length === 0">
+            No questions logged yet.
+          </div>
+          <div class="empty-state" *ngIf="items.length > 0 && filteredItems.length === 0">
+            No questions match this filter.
+          </div>
+
+          <ng-container *ngIf="filteredItems.length > 0">
+            <div class="desktop-only table-container">
+              <table class="career-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Label</th>
+                    <th>Level</th>
+                    <th>Kind</th>
+                    <th>Status</th>
+                    <th>Due</th>
+                    <th>Last</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let q of filteredItems" [routerLink]="[scope.base + '/kb', q.id]">
+                    <td>{{ q.id }}</td>
+                    <td class="ellipsis-cell" [title]="q.label">{{ q.label }}</td>
+                    <td>{{ q.level }}</td>
+                    <td>{{ q.kind }}</td>
+                    <td><span class="badge" [ngClass]="statusBadgeClass(q.status)">{{ statusLabel(q) }}</span></td>
+                    <td>{{ formatDateOrDash(q.due) }}</td>
+                    <td>{{ latestResultOrDash(q) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="mobile-only card-list">
+              <div
+                class="card-row card-row--link"
+                *ngFor="let q of filteredItems"
+                [routerLink]="[scope.base + '/kb', q.id]"
+              >
+                <div class="card-row__top">
+                  <div class="card-row__title">
+                    <span class="card-row__name">{{ q.id }}</span>
+                    <span class="card-row__topic">{{ q.label }}</span>
+                  </div>
+                  <span class="badge" [ngClass]="statusBadgeClass(q.status)">{{ statusLabel(q) }}</span>
+                </div>
+                <div class="card-row__meta">
+                  <span class="chip">{{ q.level }}</span>
+                  <span class="chip chip--muted">{{ q.kind }}</span>
+                  <span class="chip chip--muted">Due {{ formatDateOrDash(q.due) }}</span>
+                  <span class="chip" *ngIf="latestResult(q)">{{ latestResult(q) }}</span>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+        </section>
+
+        <!-- ── Current position ──────────────────────────────────────── -->
+        <section class="section">
+          <button class="collapse-toggle" (click)="positionExpanded = !positionExpanded" [class.expanded]="positionExpanded">
+            <ion-icon [name]="positionExpanded ? 'chevron-up-outline' : 'chevron-down-outline'"></ion-icon>
+            Current position
+          </button>
+          <div class="collapse-body" *ngIf="positionExpanded">
+            <markdown *ngIf="currentPositionMd; else noPosition" [data]="currentPositionMd"></markdown>
+            <ng-template #noPosition><p class="empty-copy">No current position notes yet.</p></ng-template>
+          </div>
+        </section>
+
+        <!-- ── Weak spots ────────────────────────────────────────────── -->
+        <section class="section">
+          <button class="collapse-toggle" (click)="weakSpotsExpanded = !weakSpotsExpanded" [class.expanded]="weakSpotsExpanded">
+            <ion-icon [name]="weakSpotsExpanded ? 'chevron-up-outline' : 'chevron-down-outline'"></ion-icon>
+            Weak spots
+          </button>
+          <div class="collapse-body" *ngIf="weakSpotsExpanded">
+            <markdown *ngIf="weakSpotsMd; else noWeak" [data]="weakSpotsMd"></markdown>
+            <ng-template #noWeak><p class="empty-copy">No weak spots logged yet.</p></ng-template>
+          </div>
+        </section>
+
+      </ng-container>
+    </ng-container>
+  </div>
+</ion-content>

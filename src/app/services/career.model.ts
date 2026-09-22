@@ -294,6 +294,82 @@ export interface KbSummary {
   accuracy: number | null;
 }
 
+export interface KbOption {
+  letter: string;
+  text: string;
+}
+
+// mcq | recall
+export type KbAttemptMode = string;
+
+// pass | miss | guess | skip | recall pass | recall miss
+export type KbAttemptResult = string;
+
+export interface KbAttempt {
+  date: string;
+  mode: KbAttemptMode;
+  pick: string | null;
+  result: KbAttemptResult;
+  tier: string;
+}
+
+// asked | due | learned | retired. Kept as `string`, not a union, for the
+// same reason as DrillState above.
+export type KbStatus = string;
+
+export interface KbQuestion {
+  id: string;
+  topic: string;
+  key: string;
+  kind: string;
+  level: string; // fundamentals | medium | senior, like DrillState
+  status: KbStatus;
+  due: string | null;
+  seen: number;
+  label: string;
+  stem: string;
+  options: KbOption[];
+  answer: string;
+  why: string;
+  rubric: string[];
+  modelAnswer: string;
+  versions: string | null;
+  deck: string;
+  firstAsked: string | null;
+  attempts: KbAttempt[];
+}
+
+export interface KbLevelStat {
+  asked: number;
+  passed: number;
+}
+
+export interface KbTopicState {
+  topic: string;
+  prefix: string;
+  level: string;
+  streak: number;
+  count: number;
+  toPromote: number | null;
+}
+
+export interface KbRecallItem {
+  id: string;
+  topic: string;
+  label: string;
+  due: string;
+}
+
+export interface KbData extends KbSummary {
+  activeDeck: string | null;
+  byLevel: { fundamentals: KbLevelStat; medium: KbLevelStat; senior: KbLevelStat };
+  topicStates: KbTopicState[];
+  recallDue: KbRecallItem[];
+  items: KbQuestion[];
+  currentPositionMd: string;
+  weakSpotsMd: string;
+}
+
 export interface CareerData {
   generatedAt: string;
   warnings: string[];
@@ -308,7 +384,7 @@ export interface CareerData {
   drills: DrillsData;
   playbook: Playbook;
   metrics: CareerMetrics;
-  kb: KbSummary | null;
+  kb: KbData | null;
 }
 
 // ── Known-value reference arrays ───────────────────────────────────────────

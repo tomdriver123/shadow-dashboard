@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { map, shareReplay, switchMap } from 'rxjs/operators';
-import { CareerApplication, CareerData, DrillProblem, PipelineOpportunity } from './career.model';
+import { CareerApplication, CareerData, DrillProblem, KbQuestion, PipelineOpportunity } from './career.model';
 import { CareerScope } from './career-scope';
 
 /**
@@ -52,5 +52,9 @@ export class CareerService {
 
   getDrillProblem(scope: CareerScope, id: string): Observable<DrillProblem | undefined> {
     return this.getCareerData(scope).pipe(map((d) => d.drills.problems.find((p) => p.id === id)));
+  }
+
+  getKbQuestion(scope: CareerScope, id: string): Observable<KbQuestion | undefined> {
+    return this.getCareerData(scope).pipe(map((d) => d.kb?.items.find((q) => q.id === id)));
   }
 }

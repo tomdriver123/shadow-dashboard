@@ -91,17 +91,17 @@
           <div class="stat-tile__value">{{ data.kpis.drillsDue }}</div>
         </a>
 
-        <div class="stat-tile" *ngIf="scope.features.kb">
+        <div class="stat-tile" *ngIf="scope.features.kb && !data.kb">
           <div class="stat-tile__label">Knowledge base</div>
-          <ng-container *ngIf="!data.kb">
-            <div class="stat-tile__value stat-tile__value--muted">—</div>
-            <div class="stat-tile__sub">not started</div>
-          </ng-container>
-          <ng-container *ngIf="data.kb as kb">
-            <div class="stat-tile__value">{{ kb.topics }}</div>
-            <div class="stat-tile__sub">{{ kb.questions }} questions logged</div>
-          </ng-container>
+          <div class="stat-tile__value stat-tile__value--muted">—</div>
+          <div class="stat-tile__sub">not started</div>
         </div>
+
+        <a class="stat-tile" [routerLink]="scope.base + '/kb'" *ngIf="scope.features.kb && data.kb as kb">
+          <div class="stat-tile__label">Knowledge base</div>
+          <div class="stat-tile__value">{{ kb.questions }}</div>
+          <div class="stat-tile__sub">{{ kb.topics }} topic{{ kb.topics === 1 ? '' : 's' }} · {{ kbAccuracyPct }}</div>
+        </a>
       </div>
     </section>
 

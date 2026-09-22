@@ -1,0 +1,195 @@
+// ── Palette (career-ui-brief.md; hardcoded per page, no shared partial) ────
+:host {
+  --career-accent: #f59e0b;
+  --career-advanced: #059669;
+  --career-rejected: #ef4444;
+  --career-muted: rgba(255, 255, 255, 0.28);
+}
+
+.detail-content {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 16px 24px 48px;
+}
+
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 50vh;
+  gap: 16px;
+  color: var(--ion-color-medium);
+
+  ion-icon { font-size: 48px; }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  color: var(--sh-text-secondary);
+  font-size: 14px;
+  padding: 48px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+
+  ion-icon { font-size: 44px; }
+}
+.back-link { color: var(--career-accent); font-size: 13px; margin-top: 4px; }
+
+.section { margin: 18px 0; }
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sh-text-secondary);
+  margin: 0 0 10px;
+}
+.reveal-title { margin-top: 18px; }
+
+.badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  line-height: 1.5;
+  text-transform: capitalize;
+}
+.badge--advanced { background: rgba(5, 150, 105, 0.18); color: #34d399; }
+.badge--accent   { background: rgba(245, 158, 11, 0.18); color: #fcd34d; }
+.badge--rejected { background: rgba(239, 68, 68, 0.16); color: #fca5a5; }
+.badge--muted    { background: rgba(255, 255, 255, 0.08); color: var(--sh-text-secondary); }
+
+// ── Header ──────────────────────────────────────────────────────────────
+.header-section { padding-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
+.header-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.header-name { font-size: 20px; font-weight: 700; color: var(--sh-text-primary); margin: 0; }
+.header-meta { font-size: 13px; color: var(--sh-text-secondary); margin-top: 6px; display: flex; gap: 6px; text-transform: capitalize; }
+.header-due { font-size: 12px; color: var(--career-accent); margin-top: 6px; }
+.header-versions { font-size: 12px; color: var(--sh-text-secondary); margin-top: 4px; }
+.dot { opacity: 0.5; }
+
+// ── Options ─────────────────────────────────────────────────────────────
+.option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  margin-bottom: 6px;
+}
+.option__letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--sh-text-primary);
+  font-size: 12px;
+  font-weight: 700;
+}
+.option__text { font-size: 13.5px; color: var(--sh-text-body); line-height: 1.5; }
+.option__caption {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--sh-text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.option--correct {
+  border-color: var(--career-advanced);
+
+  .option__letter { background: var(--career-advanced); color: #fff; }
+}
+.option--picked {
+  border-color: var(--career-rejected);
+}
+
+// ── Rubric ──────────────────────────────────────────────────────────────
+.rubric-list {
+  padding-left: 18px;
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--sh-text-body);
+  line-height: 1.6;
+}
+
+// ── Collapsible reveal (career-ui-brief.md, copied verbatim) ─────────────
+.collapse-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  color: var(--sh-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 12px;
+  cursor: pointer;
+
+  ion-icon { font-size: 14px; color: var(--sh-text-secondary); flex-shrink: 0; }
+}
+.collapse-body {
+  padding: 12px 4px 4px;
+  font-size: 13px;
+  color: var(--sh-text-body);
+
+  ::ng-deep {
+    p { line-height: 1.6; margin: 0 0 8px; }
+    h1, h2, h3 { color: var(--sh-text-primary); font-size: 14px; margin: 12px 0 6px; }
+    a { color: var(--career-accent); }
+    ul, ol { padding-left: 18px; }
+    pre { background: rgba(255, 255, 255, 0.05); padding: 10px; border-radius: 8px; overflow-x: auto; }
+    code { font-size: 12.5px; }
+  }
+}
+
+// Markdown outside the reveal (stem) gets the same treatment so fenced
+// code and links read consistently whether or not the answer is shown.
+.stem-body {
+  ::ng-deep {
+    p { line-height: 1.6; margin: 0 0 8px; color: var(--sh-text-body); }
+    h1, h2, h3 { color: var(--sh-text-primary); font-size: 14px; margin: 12px 0 6px; }
+    a { color: var(--career-accent); }
+    ul, ol { padding-left: 18px; }
+    pre { background: rgba(255, 255, 255, 0.05); padding: 10px; border-radius: 8px; overflow-x: auto; }
+    code { font-size: 12.5px; }
+  }
+}
+
+// ── Table / cards ───────────────────────────────────────────────────────
+.table-container { overflow-x: auto; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.07); }
+.career-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th { text-align: left; font-weight: 600; color: var(--sh-text-secondary); padding: 8px 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); white-space: nowrap; }
+  td { padding: 8px 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); color: var(--sh-text-primary); vertical-align: top; }
+}
+
+.card-list { display: flex; flex-direction: column; gap: 8px; }
+.card-row { background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 12px; padding: 12px 14px; }
+.card-row__top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.card-row__date { font-size: 13px; font-weight: 600; color: var(--sh-text-primary); }
+.card-row__score { font-size: 12px; color: var(--sh-text-secondary); font-variant-numeric: tabular-nums; text-transform: capitalize; }
+.card-row__mode { font-size: 12px; color: var(--sh-text-secondary); margin-top: 3px; }
+
+@media (max-width: 640px) {
+  .detail-content { padding: 12px 12px 40px; }
+  .header-name { font-size: 18px; }
+}

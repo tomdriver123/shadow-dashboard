@@ -12,6 +12,8 @@ import { PipelineDetailPage } from './pipeline/pipeline-detail.page';
 import { SchedulePage } from './schedule/schedule.page';
 import { DrillsPage } from './drills/drills.page';
 import { DrillDetailPage } from './drills/drill-detail.page';
+import { KbPage } from './kb/kb.page';
+import { KbDetailPage } from './kb/kb-detail.page';
 import { CommsPage } from './comms/comms.page';
 import { PlaybookPage } from './playbook/playbook.page';
 
@@ -26,6 +28,8 @@ import { PlaybookPage } from './playbook/playbook.page';
     SchedulePage,
     DrillsPage,
     DrillDetailPage,
+    KbPage,
+    KbDetailPage,
     CommsPage,
     PlaybookPage,
   ],

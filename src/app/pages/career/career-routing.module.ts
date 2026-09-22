@@ -8,6 +8,8 @@ import { PipelineDetailPage } from './pipeline/pipeline-detail.page';
 import { SchedulePage } from './schedule/schedule.page';
 import { DrillsPage } from './drills/drills.page';
 import { DrillDetailPage } from './drills/drill-detail.page';
+import { KbPage } from './kb/kb.page';
+import { KbDetailPage } from './kb/kb-detail.page';
 import { CommsPage } from './comms/comms.page';
 import { PlaybookPage } from './playbook/playbook.page';
 
@@ -23,6 +25,8 @@ const routes: Routes = [
   { path: 'schedule', component: SchedulePage },
   { path: 'drills', component: DrillsPage },
   { path: 'drills/:id', component: DrillDetailPage },
+  { path: 'kb', component: KbPage },
+  { path: 'kb/:id', component: KbDetailPage },
   { path: 'comms', component: CommsPage },
   { path: 'playbook', component: PlaybookPage },
 ];
