@@ -83,21 +83,26 @@ function startApi() {
   });
 }
 
-function webPort() {
-  const i = EXTRA_ARGS.indexOf('--port');
-  if (i > -1 && EXTRA_ARGS[i + 1]) return Number(EXTRA_ARGS[i + 1]);
-  const eq = EXTRA_ARGS.find((a) => a.startsWith('--port='));
-  return eq ? Number(eq.split('=')[1]) : 4200;
+function argValue(flag, fallback) {
+  const i = EXTRA_ARGS.indexOf(flag);
+  if (i > -1 && EXTRA_ARGS[i + 1]) return EXTRA_ARGS[i + 1];
+  const eq = EXTRA_ARGS.find((a) => a.startsWith(flag + '='));
+  return eq ? eq.slice(flag.length + 1) : fallback;
 }
 
-// Fail fast when the web port is taken (usually a stale ng serve in another
-// terminal); otherwise ng serve waits on an interactive prompt.
-function assertPortFree(port) {
+const webPort = () => Number(argValue('--port', '4200'));
+const webHost = () => argValue('--host', 'localhost');
+
+// Fail fast when the web host:port is taken; otherwise ng serve waits on an
+// interactive prompt. Probe the same host ng serve will bind: tailscale serve
+// holds the tailscale IP on 4200, so the wildcard (--host 0.0.0.0) collides
+// with it while localhost is free, and the phone is served through tailscale.
+function assertPortFree(port, host) {
   return new Promise((resolve) => {
     const probe = require('net').createServer();
     probe.once('error', () => resolve(false));
     probe.once('listening', () => probe.close(() => resolve(true)));
-    probe.listen(port);
+    probe.listen(port, host);
   });
 }
 
@@ -128,8 +133,12 @@ process.on('SIGTERM', () => shutdown('SIGTERM'));
 
 (async () => {
   const port = webPort();
-  if (!(await assertPortFree(port))) {
-    process.stderr.write(`[dev] port ${port} is already in use (a stale ng serve in another terminal?). Stop it or pass --port, then run npm start again.\n`);
+  const host = webHost();
+  if (!(await assertPortFree(port, host))) {
+    const hint = host === '0.0.0.0' || host === '::'
+      ? 'tailscale serve already holds the tailscale IP on this port, so drop --host 0.0.0.0 (the phone reaches the dashboard through tailscale on localhost:4200)'
+      : 'a stale ng serve in another terminal? Stop it or pass --port';
+    process.stderr.write(`[dev] ${host}:${port} is already in use: ${hint}. Then run npm start again.\n`);
     process.exit(1);
   }
   startApi();

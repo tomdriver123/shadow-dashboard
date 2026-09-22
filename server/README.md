@@ -30,3 +30,5 @@ page will sit in offline mode, which looks like a bug but is not.
 
 The voice server on port 18790 is unrelated to this API and is not touched
 by it.
+
+Do not pass `--host 0.0.0.0` to `npm start`: `tailscale serve` already holds the tailscale IP on port 4200 and proxies it to localhost, so the wildcard bind collides while plain `npm start` (localhost) works and the phone still reaches it.
