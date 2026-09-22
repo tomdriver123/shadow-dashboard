@@ -308,39 +308,24 @@ export class ApplicationsPage implements OnInit {
   // Optional one line why note on a pass. Skip resolves '', Save resolves
   // the trimmed text, and a backdrop dismiss resolves null so vote() can
   // abort instead of recording a verdict the person did not confirm.
+  // Decided from the dismissal role, not button handlers: Ionic runs the
+  // cancel role handler on a backdrop or Escape dismiss too, which would
+  // turn an abort into a silent pass.
   private async askWhy(row: CareerQueueRow): Promise<string | null> {
-    return new Promise<string | null>((resolve) => {
-      let settled = false;
-      this.alertController
-        .create({
-          header: `Passed on ${row.company}`,
-          message: 'Want to say why? Optional.',
-          inputs: [{ name: 'why', type: 'textarea', placeholder: 'Optional note' }],
-          buttons: [
-            {
-              text: 'Skip',
-              role: 'cancel',
-              handler: () => {
-                settled = true;
-                resolve('');
-              },
-            },
-            {
-              text: 'Save',
-              handler: (data: { why?: string }) => {
-                settled = true;
-                resolve((data?.why ?? '').trim());
-              },
-            },
-          ],
-        })
-        .then((alert) => {
-          alert.onDidDismiss().then(() => {
-            if (!settled) resolve(null);
-          });
-          void alert.present();
-        });
+    const alert = await this.alertController.create({
+      header: `Passed on ${row.company}`,
+      message: 'Want to say why? Optional.',
+      inputs: [{ name: 'why', type: 'textarea', placeholder: 'Optional note' }],
+      buttons: [
+        { text: 'Skip', role: 'cancel' },
+        { text: 'Save', role: 'save' },
+      ],
     });
+    await alert.present();
+    const { role, data } = await alert.onDidDismiss<{ values?: { why?: string } }>();
+    if (role === 'save') return (data?.values?.why ?? '').trim();
+    if (role === 'cancel') return '';
+    return null; // backdrop, Escape, hardware back
   }
 
   isVoting(row: CareerQueueRow): boolean {
