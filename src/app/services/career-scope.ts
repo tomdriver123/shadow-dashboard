@@ -7,14 +7,14 @@ export interface CareerScope {
   displayName: string;
   base: '/tabs/career' | '/sabrina/career';
   dataUrl: string;
-  features: { drills: boolean; kb: boolean; linkedinViews: boolean; menuButton: boolean; queueVerdict: boolean };
+  features: { drills: boolean; kb: boolean; linkedinViews: boolean; menuButton: boolean; queueVerdict: boolean; queueVerdictNote: boolean };
 }
 
 export const CAREER_SCOPES: Record<CareerPerson, CareerScope> = {
   tom: { person: 'tom', displayName: 'Tom', base: '/tabs/career', dataUrl: 'assets/data/career.json',
-         features: { drills: true, kb: true, linkedinViews: true, menuButton: true, queueVerdict: true } },
+         features: { drills: true, kb: true, linkedinViews: true, menuButton: true, queueVerdict: true, queueVerdictNote: false } },
   sabrina: { person: 'sabrina', displayName: 'Sabrina', base: '/sabrina/career', dataUrl: 'assets/data/career-sabrina.json',
-             features: { drills: false, kb: false, linkedinViews: false, menuButton: false, queueVerdict: false } },
+             features: { drills: false, kb: false, linkedinViews: false, menuButton: false, queueVerdict: true, queueVerdictNote: true } },
 };
 
 /** Walks the snapshot chain so the scope resolves regardless of paramsInheritanceStrategy. */

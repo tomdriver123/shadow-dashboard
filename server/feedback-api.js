@@ -12,6 +12,17 @@
  *
  * Storage contract: vault/feedback/README.md
  *
+ * Also carries POST /api/feedback/jobs/verdict: Sabrina's queue thumbs.
+ * Tom's queue verdicts go through the voice server on :18790
+ * (vault/tools/voice_server.py), which already owns his queue.md and his
+ * jobs.json regen path. Sabrina has neither, and standing up a second
+ * FastAPI process for one route was not worth it, so her verdict route
+ * lives here instead: same process as the rest of this API, reachable on
+ * the tailnet through the same 4200 dev proxy (proxy.conf.json's
+ * /api/feedback prefix already matches it, no proxy change needed). The
+ * ledger path is hardcoded to her queue.md; there is no author field on
+ * this route, that hardcoding is the security model.
+ *
  * Started by `npm start` (dashboard/scripts/dev.js) alongside `ng serve`
  * and reached same origin through Angular's dev proxy (proxy.conf.json).
  * Binds 127.0.0.1 only; there is no CORS support because there is no
@@ -21,6 +32,10 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { execFile } = require('child_process');
+const { promisify } = require('util');
+
+const execFileAsync = promisify(execFile);
 
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.FEEDBACK_API_PORT) || 4201;
@@ -34,6 +49,14 @@ const MAX_BODY_BYTES = 48 * 1024 * 1024;
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_IMAGES = 6;
 const MAX_TEXT_LEN = 20000;
+
+const SABRINA_QUEUE = path.resolve(
+  __dirname, '..', '..', 'vault', 'projects', 'job-hunt-sabrina', 'digest', 'queue.md'
+);
+const CAREER_GENERATOR = path.resolve(__dirname, '..', 'scripts', 'generate-career-data.js');
+const QUEUE_ID_RE = /^[a-z0-9][a-z0-9-]{0,63}$/;
+const MAX_VERDICT_BODY_BYTES = 4096;
+const VERDICTS = ['liked', 'passed'];
 
 const IMAGE_TYPES = {
   'image/png': 'png',
@@ -392,6 +415,86 @@ async function handlePost(req, res) {
   sendJson(res, 201, { entry: readEntry(author, id) });
 }
 
+// ── POST /api/feedback/jobs/verdict ───────────────────────────────────────
+// Sabrina's queue thumbs. Mirrors _update_queue_status in
+// vault/tools/voice_server.py:858-883: queue.md rows split on '|' into 12+
+// parts (leading/trailing empty strings), id is parts[1], status is
+// parts[10]; cells never contain '|' (enforced by the job-scan skill).
+
+function updateSabrinaQueueStatus(id, verdict) {
+  if (!fs.existsSync(SABRINA_QUEUE)) return false;
+  const lines = fs.readFileSync(SABRINA_QUEUE, 'utf8').split('\n');
+  let updated = false;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line.includes('|')) continue;
+    const parts = line.split('|');
+    if (parts.length >= 12 && parts[1].trim() === id) {
+      parts[10] = ` ${verdict} `;
+      lines[i] = parts.join('|');
+      updated = true;
+      break;
+    }
+  }
+  if (!updated) return false;
+
+  const tmp = `${SABRINA_QUEUE}.tmp`;
+  fs.writeFileSync(tmp, lines.join('\n'), 'utf8');
+  fs.renameSync(tmp, SABRINA_QUEUE);
+  return true;
+}
+
+async function handleJobsVerdict(req, res) {
+  const raw = await readBody(req, res, MAX_VERDICT_BODY_BYTES);
+  if (raw === null) return; // 413 already sent, or the connection died
+
+  let data;
+  try {
+    data = JSON.parse(raw.toString('utf8'));
+  } catch {
+    sendJson(res, 400, { error: 'invalid JSON body' });
+    return;
+  }
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    sendJson(res, 400, { error: 'body must be a JSON object' });
+    return;
+  }
+
+  const { id, verdict } = data;
+  if (typeof id !== 'string' || !QUEUE_ID_RE.test(id)) {
+    sendJson(res, 400, { error: 'id must match /^[a-z0-9][a-z0-9-]{0,63}$/' });
+    return;
+  }
+  if (typeof verdict !== 'string' || !VERDICTS.includes(verdict)) {
+    sendJson(res, 400, { error: `verdict must be one of ${VERDICTS.join(', ')}` });
+    return;
+  }
+
+  let updated;
+  try {
+    updated = updateSabrinaQueueStatus(id, verdict);
+  } catch (err) {
+    sendJson(res, 500, { error: `failed to update queue ledger: ${err.message}` });
+    return;
+  }
+  if (!updated) {
+    sendJson(res, 404, { ok: false, id, verdict, error: 'id not found in sabrina queue ledger' });
+    return;
+  }
+
+  try {
+    await execFileAsync(process.execPath, [CAREER_GENERATOR, '--person', 'sabrina'], { timeout: 30000 });
+  } catch (err) {
+    // The ledger write already succeeded and is truth; rolling the UI
+    // response back to a failure would lie. The next regen heals the JSON.
+    process.stderr.write(`[feedback-api] sabrina career regen failed: ${err.stderr || err.message}\n`);
+    sendJson(res, 200, { ok: true, id, verdict, warning: 'ledger updated, regenerate failed' });
+    return;
+  }
+
+  sendJson(res, 200, { ok: true, id, verdict });
+}
+
 // ── GET /api/feedback/attachments/:author/:file ───────────────────────────
 
 function serveAttachment(res, pathname) {
@@ -452,7 +555,7 @@ async function handleRequest(req, res, method, pathname, urlObj) {
   }
 
   if (method === 'GET' && pathname === '/api/feedback/health') {
-    sendJson(res, 200, { ok: true, root: ROOT, authors: AUTHORS });
+    sendJson(res, 200, { ok: true, root: ROOT, authors: AUTHORS, queue: SABRINA_QUEUE });
     return;
   }
 
@@ -468,6 +571,11 @@ async function handleRequest(req, res, method, pathname, urlObj) {
       return;
     }
     sendJson(res, 200, { entries: listEntries(author) });
+    return;
+  }
+
+  if (method === 'POST' && pathname === '/api/feedback/jobs/verdict') {
+    await handleJobsVerdict(req, res);
     return;
   }
 

@@ -221,7 +221,7 @@
 
             <div class="card-row__meta">
               <span class="chip" *ngIf="row.score !== null">{{ row.score }}/10</span>
-              <span class="chip">Lane {{ laneLabel(row.lane) }}</span>
+              <span class="chip" *ngIf="row.lane === 'lane-a' || row.lane === 'lane-b'">Lane {{ laneLabel(row.lane) }}</span>
               <span class="chip">{{ row.salaryText || 'not posted' }}</span>
               <span class="chip">{{ locationLabel(row.location) }}</span>
               <span class="chip" *ngIf="row.points !== null">{{ row.points }} pts</span>

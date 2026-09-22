@@ -1,7 +1,10 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { AlertController } from '@ionic/angular';
 import { CareerService } from '../../../services/career.service';
 import { JobsService } from '../../../services/jobs.service';
+import { CareerVerdictService } from '../../../services/career-verdict.service';
+import { FeedbackService } from '../../../services/feedback.service';
 import { careerScopeFromRoute } from '../../../services/career-scope';
 import { CareerApplication, CareerData, CareerQueueRow } from '../../../services/career.model';
 
@@ -101,6 +104,9 @@ export class ApplicationsPage implements OnInit {
 
   private readonly careerService = inject(CareerService);
   private readonly jobsService = inject(JobsService);
+  private readonly careerVerdictService = inject(CareerVerdictService);
+  private readonly feedbackService = inject(FeedbackService);
+  private readonly alertController = inject(AlertController);
 
   readonly scope = careerScopeFromRoute(inject(ActivatedRoute));
 
@@ -261,14 +267,34 @@ export class ApplicationsPage implements OnInit {
     return row.status === 'queued' || row.status === 'manual' || !!this.verdictState[row.id];
   }
 
-  vote(row: CareerQueueRow, verdict: 'liked' | 'passed'): void {
+  async vote(row: CareerQueueRow, verdict: 'liked' | 'passed'): Promise<void> {
     if (this.verdictState[row.id]) return;
+
+    let note = '';
+    if (verdict === 'passed' && this.scope.features.queueVerdictNote) {
+      const answer = await this.askWhy(row);
+      if (answer === null) return; // backdrop dismiss aborts the vote
+      note = answer;
+    }
+
     this.verdictState[row.id] = 'voting';
-    this.jobsService.postVerdict(row.id, verdict).subscribe({
+    const verdict$ = this.scope.person === 'sabrina'
+      ? this.careerVerdictService.postVerdict(row.id, verdict)
+      : this.jobsService.postVerdict(row.id, verdict);
+
+    verdict$.subscribe({
       next: (res) => {
         if (res.ok) {
           this.verdictState[row.id] = verdict;
           row.status = verdict;
+          this.careerService.refresh(this.scope);
+          if (note) {
+            void this.feedbackService.submit(
+              this.scope.person,
+              `[queue verdict ${row.id}] Passed on ${row.company} ${row.role}: ${note}`,
+              [],
+            );
+          }
         } else {
           delete this.verdictState[row.id];
         }
@@ -276,6 +302,44 @@ export class ApplicationsPage implements OnInit {
       error: () => {
         delete this.verdictState[row.id];
       },
+    });
+  }
+
+  // Optional one line why note on a pass. Skip resolves '', Save resolves
+  // the trimmed text, and a backdrop dismiss resolves null so vote() can
+  // abort instead of recording a verdict the person did not confirm.
+  private async askWhy(row: CareerQueueRow): Promise<string | null> {
+    return new Promise<string | null>((resolve) => {
+      let settled = false;
+      this.alertController
+        .create({
+          header: `Passed on ${row.company}`,
+          message: 'Want to say why? Optional.',
+          inputs: [{ name: 'why', type: 'textarea', placeholder: 'Optional note' }],
+          buttons: [
+            {
+              text: 'Skip',
+              role: 'cancel',
+              handler: () => {
+                settled = true;
+                resolve('');
+              },
+            },
+            {
+              text: 'Save',
+              handler: (data: { why?: string }) => {
+                settled = true;
+                resolve((data?.why ?? '').trim());
+              },
+            },
+          ],
+        })
+        .then((alert) => {
+          alert.onDidDismiss().then(() => {
+            if (!settled) resolve(null);
+          });
+          void alert.present();
+        });
     });
   }
 

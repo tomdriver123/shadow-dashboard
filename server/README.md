@@ -32,3 +32,19 @@ The voice server on port 18790 is unrelated to this API and is not touched
 by it.
 
 Do not pass `--host 0.0.0.0` to `npm start`: `tailscale serve` already holds the tailscale IP on port 4200 and proxies it to localhost, so the wildcard bind collides while plain `npm start` (localhost) works and the phone still reaches it.
+
+## Queue verdicts
+
+`POST /api/feedback/jobs/verdict` is a zero dependency endpoint on this same API. It receives `{ id, verdict }` where `verdict` is `liked` or `passed`. The id must match `^[a-z0-9][a-z0-9-]{0,63}$`; the request body is capped at 4 KB.
+
+The route finds the matching job id in `vault/projects/job-hunt-sabrina/digest/queue.md` using the same row matching rule as the voice server handler. When found, it updates column 10 (status) to the verdict and writes the file using the atomic temp then rename pattern. Then it runs `node dashboard/scripts/generate-career-data.js --person sabrina` and waits for completion.
+
+Responses:
+- 404 when the id is not found in the queue ledger.
+- 400 for malformed body or invalid id/verdict.
+- 200 on success, with `{ ok:true, id, verdict }`.
+- 200 with a warning field if the ledger was updated but the generator failed (the ledger is truth; the next regen heals).
+
+No `author` field is accepted. The ledger path is hardcoded: that is the security model. Tom's identical thumbs still post to the voice server on port 18790 instead.
+
+The health response includes `queue: <path to sabrina queue.md>` so clients know the ledger exists.
