@@ -45,10 +45,12 @@ function prefixed(stream, label, out) {
   });
 }
 
-function spawnLabeled(label, command, args) {
+function spawnLabeled(label, command, args, stdin = 'ignore') {
   const child = spawn(command, args, {
     cwd: ROOT,
-    stdio: ['ignore', 'pipe', 'pipe'],
+    // ng serve gets the terminal's stdin so its prompts (for example the
+    // "port in use" question) can be answered instead of hanging forever.
+    stdio: [stdin, 'pipe', 'pipe'],
   });
   prefixed(child.stdout, label, process.stdout);
   prefixed(child.stderr, label, process.stderr);
@@ -81,9 +83,27 @@ function startApi() {
   });
 }
 
+function webPort() {
+  const i = EXTRA_ARGS.indexOf('--port');
+  if (i > -1 && EXTRA_ARGS[i + 1]) return Number(EXTRA_ARGS[i + 1]);
+  const eq = EXTRA_ARGS.find((a) => a.startsWith('--port='));
+  return eq ? Number(eq.split('=')[1]) : 4200;
+}
+
+// Fail fast when the web port is taken (usually a stale ng serve in another
+// terminal); otherwise ng serve waits on an interactive prompt.
+function assertPortFree(port) {
+  return new Promise((resolve) => {
+    const probe = require('net').createServer();
+    probe.once('error', () => resolve(false));
+    probe.once('listening', () => probe.close(() => resolve(true)));
+    probe.listen(port);
+  });
+}
+
 function startWeb() {
   const { command, args } = ngCommand();
-  webChild = spawnLabeled('web', command, args);
+  webChild = spawnLabeled('web', command, args, 'inherit');
   webChild.on('exit', (code, signal) => {
     webChild = null;
     if (shuttingDown) return;
@@ -106,5 +126,12 @@ function shutdown(signal) {
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 
-startApi();
-startWeb();
+(async () => {
+  const port = webPort();
+  if (!(await assertPortFree(port))) {
+    process.stderr.write(`[dev] port ${port} is already in use (a stale ng serve in another terminal?). Stop it or pass --port, then run npm start again.\n`);
+    process.exit(1);
+  }
+  startApi();
+  startWeb();
+})();
