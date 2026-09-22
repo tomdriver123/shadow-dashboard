@@ -1,7 +1,7 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-back-button defaultHref="/tabs/career"></ion-back-button>
+      <ion-back-button [defaultHref]="scope.base"></ion-back-button>
     </ion-buttons>
     <ion-title>Schedule</ion-title>
   </ion-toolbar>
@@ -30,7 +30,7 @@
           <div
             class="card-row schedule-row"
             *ngFor="let evt of group.events"
-            [routerLink]="evt.pipelineId ? ['/tabs/career/pipeline', evt.pipelineId] : null"
+            [routerLink]="evt.pipelineId ? [scope.base + '/pipeline', evt.pipelineId] : null"
           >
             <div class="schedule-row__time">{{ hasTime(evt.date) ? (evt.date | date:'h:mm a') : 'all day' }}</div>
             <ng-container *ngTemplateOutlet="rowBody; context: { $implicit: evt }"></ng-container>
@@ -47,7 +47,7 @@
           <div
             class="card-row schedule-row"
             *ngFor="let evt of pastEventsSorted"
-            [routerLink]="evt.pipelineId ? ['/tabs/career/pipeline', evt.pipelineId] : null"
+            [routerLink]="evt.pipelineId ? [scope.base + '/pipeline', evt.pipelineId] : null"
           >
             <div class="schedule-row__time">
               {{ evt.date | date:'MMM d' }}<ng-container *ngIf="hasTime(evt.date)">, {{ evt.date | date:'h:mm a' }}</ng-container>

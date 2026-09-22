@@ -1,6 +1,8 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { formatDate } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { CareerService } from '../../../services/career.service';
+import { careerScopeFromRoute } from '../../../services/career-scope';
 import { CareerData, ResumeVariant, StrategyDoc } from '../../../services/career.model';
 
 const VARIANT_PAGE_SIZE = 40;
@@ -20,6 +22,8 @@ export class PlaybookPage implements OnInit {
   private readonly careerService = inject(CareerService);
   private readonly expandedDocIds = new Set<string>();
 
+  readonly scope = careerScopeFromRoute(inject(ActivatedRoute));
+
   data: CareerData | null = null;
   loading = true;
   error = false;
@@ -29,7 +33,7 @@ export class PlaybookPage implements OnInit {
   visibleVariantCount = VARIANT_PAGE_SIZE;
 
   ngOnInit(): void {
-    this.careerService.getCareerData().subscribe({
+    this.careerService.getCareerData(this.scope).subscribe({
       next: (d) => {
         this.data = d;
         this.loading = false;

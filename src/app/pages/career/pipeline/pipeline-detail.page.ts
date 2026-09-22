@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { combineLatest } from 'rxjs';
 import { CareerService } from '../../../services/career.service';
+import { careerScopeFromRoute } from '../../../services/career-scope';
 import { CommsEntry, PipelineOpportunity, PipelineStage } from '../../../services/career.model';
 
 type ProcessMarker = 'done' | 'current' | 'upcoming';
@@ -26,9 +27,14 @@ export class PipelineDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly careerService = inject(CareerService);
 
+  readonly scope = careerScopeFromRoute(inject(ActivatedRoute));
+
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id') ?? '';
-    combineLatest([this.careerService.getOpportunity(id), this.careerService.getCareerData()]).subscribe({
+    combineLatest([
+      this.careerService.getOpportunity(this.scope, id),
+      this.careerService.getCareerData(this.scope),
+    ]).subscribe({
       next: ([opp, data]) => {
         this.opp = opp ?? null;
         this.comms = data.comms.filter((c) => c.pipelineId === id);

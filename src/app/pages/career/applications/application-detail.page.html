@@ -1,7 +1,7 @@
 <ion-header>
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-back-button defaultHref="/tabs/career/applications"></ion-back-button>
+      <ion-back-button [defaultHref]="scope.base + '/applications'"></ion-back-button>
     </ion-buttons>
     <ion-title>{{ application?.company || 'Application' }}</ion-title>
   </ion-toolbar>
@@ -132,7 +132,7 @@
       <!-- Pipeline link -->
       <div class="section" *ngIf="application.pipelineId">
         <div class="section-title">Pipeline</div>
-        <a class="external-link" [routerLink]="['/tabs/career/pipeline', application.pipelineId]">
+        <a class="external-link" [routerLink]="[scope.base + '/pipeline', application.pipelineId]">
           <ion-icon name="git-network-outline"></ion-icon> View pipeline opportunity
         </a>
       </div>

@@ -1,7 +1,7 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-back-button defaultHref="/tabs/career"></ion-back-button>
+      <ion-back-button [defaultHref]="scope.base"></ion-back-button>
     </ion-buttons>
     <ion-title>Drills</ion-title>
   </ion-toolbar>
@@ -91,7 +91,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let p of filteredProblems" [routerLink]="['/tabs/career/drills', p.id]">
+                <tr *ngFor="let p of filteredProblems" [routerLink]="[scope.base + '/drills', p.id]">
                   <td>{{ p.name }}</td>
                   <td>{{ p.topic }}</td>
                   <td>{{ p.attempts.length }}</td>
@@ -107,7 +107,7 @@
             <div
               class="card-row card-row--link"
               *ngFor="let p of filteredProblems"
-              [routerLink]="['/tabs/career/drills', p.id]"
+              [routerLink]="[scope.base + '/drills', p.id]"
             >
               <div class="card-row__top">
                 <div class="card-row__title">

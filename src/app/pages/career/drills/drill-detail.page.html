@@ -1,7 +1,7 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-back-button defaultHref="/tabs/career/drills"></ion-back-button>
+      <ion-back-button [defaultHref]="scope.base + '/drills'"></ion-back-button>
     </ion-buttons>
     <ion-title>{{ problem?.name ?? 'Drill' }}</ion-title>
   </ion-toolbar>
@@ -22,7 +22,7 @@
     <div class="empty-state" *ngIf="!loading && !error && !problem">
       <ion-icon name="help-circle-outline" size="large"></ion-icon>
       <p>Problem not found. It may have been removed from the drill log.</p>
-      <a class="back-link" routerLink="/tabs/career/drills">Back to Drills</a>
+      <a class="back-link" [routerLink]="scope.base + '/drills'">Back to Drills</a>
     </div>
 
     <ng-container *ngIf="!loading && !error && problem as problem">

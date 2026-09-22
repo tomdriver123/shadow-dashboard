@@ -1,7 +1,9 @@
 import { Component, ElementRef, NgZone, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
 import { CareerService } from '../../services/career.service';
+import { careerScopeFromRoute } from '../../services/career-scope';
 import {
   AccuracyPoint,
   CareerData,
@@ -67,6 +69,8 @@ export class CareerPage implements OnInit, OnDestroy {
   private careerService = inject(CareerService);
   private ngZone = inject(NgZone);
 
+  readonly scope = careerScopeFromRoute(inject(ActivatedRoute));
+
   data: CareerData | null = null;
   loading = true;
   error = false;
@@ -78,7 +82,7 @@ export class CareerPage implements OnInit, OnDestroy {
   private weeklyChart: Chart | null = null;
 
   ngOnInit(): void {
-    this.sub = this.careerService.getCareerData().subscribe({
+    this.sub = this.careerService.getCareerData(this.scope).subscribe({
       next: (d) => {
         this.data = d;
         this.loading = false;

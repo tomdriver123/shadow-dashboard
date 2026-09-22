@@ -1,13 +1,17 @@
 #!/usr/bin/env node
 /**
  * generate-career-data.js
- * Reads vault/projects/job-hunt/* (applications ledger, scan queue, pipeline
- * opportunities, comms log, drill log, resume variants, strategy docs) and
- * computes points/metrics for the dashboard Career tab.
- * Outputs src/assets/data/career.json.
+ * Reads vault/projects/job-hunt/* (Tom) or vault/projects/job-hunt-sabrina/*
+ * (Sabrina): applications ledger, scan queue, pipeline opportunities, comms
+ * log, drill log, resume variants, strategy docs. Computes points and
+ * metrics for the dashboard Career tab.
+ * Outputs src/assets/data/career.json (Tom) and/or
+ * src/assets/data/career-sabrina.json (Sabrina). See PERSONS below.
  *
  * Usage:
- *   node scripts/generate-career-data.js
+ *   node scripts/generate-career-data.js                  # all persons (default)
+ *   node scripts/generate-career-data.js --person tom
+ *   node scripts/generate-career-data.js --person sabrina
  */
 
 const fs = require('fs');
@@ -22,35 +26,63 @@ try {
 }
 
 const SHADOW_ROOT   = path.resolve(__dirname, '..', '..');
-const JOB_HUNT_DIR  = path.join(SHADOW_ROOT, 'vault', 'projects', 'job-hunt');
-const DIGEST_DIR    = path.join(JOB_HUNT_DIR, 'digest');
-const APPLICATIONS_FILE   = path.join(JOB_HUNT_DIR, 'applications.md');
-const QUEUE_FILE          = path.join(DIGEST_DIR, 'queue.md');
-const PIPELINE_DIR        = path.join(JOB_HUNT_DIR, 'pipeline');
-const COMMS_FILE          = path.join(JOB_HUNT_DIR, 'comms.md');
-const LINKEDIN_VIEWS_FILE = path.join(JOB_HUNT_DIR, 'metrics', 'linkedin-views.md');
-const LESSONS_FILE        = path.join(JOB_HUNT_DIR, 'lessons.md');
-const DRILL_LOG_FILE      = path.join(JOB_HUNT_DIR, 'interview-prep', 'drill-log.md');
-const KB_LOG_FILE         = path.join(JOB_HUNT_DIR, 'interview-prep', 'kb-log.md');
-const RESUME_DIR          = path.join(JOB_HUNT_DIR, 'resume');
-const VARIANTS_DIR        = path.join(RESUME_DIR, 'variants');
-const OUTPUT = path.join(__dirname, '..', 'src', 'assets', 'data', 'career.json');
+
+// One entry per person this generator supports. configure() below reads
+// this to populate every path and date constant for a given run.
+const PERSONS = {
+  tom:     { dir: 'job-hunt',         out: 'career.json',         routeBase: '/tabs/career',    huntStart: '2026-08-12', lastDay: '2026-09-30', resumePdf: 'Thomas-Driver-Resume.pdf', features: { drills: true,  kb: true  } },
+  sabrina: { dir: 'job-hunt-sabrina', out: 'career-sabrina.json', routeBase: '/sabrina/career', huntStart: '2026-09-22', lastDay: null,         resumePdf: 'Sabrina-Resume.pdf',  features: { drills: false, kb: false } },
+};
+
+let JOB_HUNT_DIR, DIGEST_DIR, APPLICATIONS_FILE, QUEUE_FILE, PIPELINE_DIR, COMMS_FILE,
+    LINKEDIN_VIEWS_FILE, LESSONS_FILE, DRILL_LOG_FILE, KB_LOG_FILE, RESUME_DIR, VARIANTS_DIR,
+    OUTPUT, HUNT_START, LAST_DAY;
+let PERSON, ROUTE_BASE, RESUME_PDF, FEATURES;
 
 const POINTS_CONFIG = { perOfficeDay: 30, contractFactor: 0.5, hoursPerYear: 2080 };
-const HUNT_START = '2026-08-12';
-const LAST_DAY   = '2026-09-30';
 
-// Hard guard: profile.md holds Tom's raw PII (SSN-adjacent form answers, full
-// address, etc). It must never be read by this script, full stop. Every file
+// Hard guard: profile.md holds raw PII (SSN-adjacent form answers, full
+// address, etc) for whichever person is active. It must never be read by
+// this script, full stop, for Tom's profile.md or Sabrina's. Every file
 // read in this generator goes through safeReadFile() so this check is the
-// single choke point. Never directory-scan job-hunt/ for .md as a shortcut
-// around that: only known subdirectories (pipeline/, resume/variants/) are
-// listed, and everything else is an explicit allowlisted path.
+// single choke point, and it is a basename match, so it guards every
+// person's profile.md regardless of which job-hunt directory is active.
+// Never directory-scan job-hunt/ for .md as a shortcut around that: only
+// known subdirectories (pipeline/, resume/variants/) are listed, and
+// everything else is an explicit allowlisted path.
 const NEVER_READ = ['profile.md'];
 
 const warnings = [];
 function warn(msg) {
   warnings.push(msg);
+}
+
+// Populates every path/date/feature constant above for one person. Called
+// once at the top of main() per run. Also clears warnings, since that array
+// is shared module state and a single process run (the default, no args)
+// generates every person in turn.
+function configure(personKey) {
+  const p = PERSONS[personKey];
+  PERSON       = personKey;
+  JOB_HUNT_DIR = path.join(SHADOW_ROOT, 'vault', 'projects', p.dir);
+  DIGEST_DIR   = path.join(JOB_HUNT_DIR, 'digest');
+  APPLICATIONS_FILE   = path.join(JOB_HUNT_DIR, 'applications.md');
+  QUEUE_FILE          = path.join(DIGEST_DIR, 'queue.md');
+  PIPELINE_DIR        = path.join(JOB_HUNT_DIR, 'pipeline');
+  COMMS_FILE          = path.join(JOB_HUNT_DIR, 'comms.md');
+  LINKEDIN_VIEWS_FILE = path.join(JOB_HUNT_DIR, 'metrics', 'linkedin-views.md');
+  LESSONS_FILE        = path.join(JOB_HUNT_DIR, 'lessons.md');
+  DRILL_LOG_FILE      = path.join(JOB_HUNT_DIR, 'interview-prep', 'drill-log.md');
+  KB_LOG_FILE         = path.join(JOB_HUNT_DIR, 'interview-prep', 'kb-log.md');
+  RESUME_DIR          = path.join(JOB_HUNT_DIR, 'resume');
+  VARIANTS_DIR        = path.join(RESUME_DIR, 'variants');
+  OUTPUT     = path.join(__dirname, '..', 'src', 'assets', 'data', p.out);
+  HUNT_START = p.huntStart;
+  LAST_DAY   = p.lastDay;
+  ROUTE_BASE = p.routeBase;
+  RESUME_PDF = p.resumePdf;
+  FEATURES   = p.features;
+  warnings.length = 0;
 }
 
 // ── Generic helpers ───────────────────────────────────────────────────────
@@ -309,7 +341,7 @@ function parseApplications(filePath) {
     const variantSlug = variantMatch ? variantMatch[1] : null;
     let variantPdf = null;
     if (variantSlug) {
-      const pdfPath = path.join(VARIANTS_DIR, variantSlug, 'Thomas-Driver-Resume.pdf');
+      const pdfPath = path.join(VARIANTS_DIR, variantSlug, RESUME_PDF);
       if (fs.existsSync(pdfPath)) variantPdf = path.relative(SHADOW_ROOT, pdfPath);
     }
 
@@ -793,14 +825,20 @@ function parseScoreCell(scoreText) {
   return { kind: 'other', raw: t };
 }
 
-function parseDrillLog(filePath, now) {
-  const empty = {
+// Module level so main() can reuse the same empty shape when
+// FEATURES.drills is false, without pushing a "not found" warning: there is
+// nothing to warn about when drills are deliberately off for this person.
+function emptyDrills() {
+  return {
     currentPositionMd: '', weakSpotsMd: '', redoQueue: [], history: [],
     problems: [], patterns: [], accuracySeries: [],
   };
+}
+
+function parseDrillLog(filePath, now) {
   if (!fs.existsSync(filePath)) {
     warn(`drill-log.md not found (${filePath})`);
-    return empty;
+    return emptyDrills();
   }
 
   const content = safeReadFile(filePath);
@@ -1021,7 +1059,7 @@ function parseResumeVariants() {
       const company = data.company || derived.company;
       const role = data.role || derived.role;
 
-      const pdfPath = path.join(VARIANTS_DIR, variantSlug, 'Thomas-Driver-Resume.pdf');
+      const pdfPath = path.join(VARIANTS_DIR, variantSlug, RESUME_PDF);
       let hasPdf = false;
       let pdfPathRel = null;
       let pdfMtime = null;
@@ -1091,9 +1129,11 @@ function parsePlaybook() {
 const ADVANCED_STATUSES = ['screen', 'assessment', 'interview', 'offer'];
 
 function computeMetrics(applications, queue, pipeline, comms, drills, linkedinViews, now) {
-  // Weekly buckets, Monday-anchored, from 2026-08-10 through the current week.
+  // Weekly buckets, Monday-anchored, from the Monday on or before HUNT_START
+  // through the current week. Tom's HUNT_START (2026-08-12) lands on
+  // 2026-08-10, matching the previous hardcoded anchor exactly.
   const weekly = [];
-  let cursor = new Date('2026-08-10T00:00:00Z');
+  let cursor = mondayOf(new Date(`${HUNT_START}T00:00:00Z`));
   const nowWeekStart = mondayOf(now);
   while (cursor <= nowWeekStart) {
     const weekEnd = new Date(cursor);
@@ -1155,7 +1195,7 @@ function computeMetrics(applications, queue, pipeline, comms, drills, linkedinVi
         kind: 'pipeline',
         title: `${p.company}: ${p.nextAction || 'action needed'}`,
         due: p.nextActionDue || null,
-        link: `/tabs/career/pipeline/${p.id}`,
+        link: `${ROUTE_BASE}/pipeline/${p.id}`,
       });
     }
   }
@@ -1166,7 +1206,7 @@ function computeMetrics(applications, queue, pipeline, comms, drills, linkedinVi
         kind: 'comms',
         title: `${c.company}: ${c.summary}`,
         due: c.due || null,
-        link: '/tabs/career/comms',
+        link: `${ROUTE_BASE}/comms`,
       });
     }
   }
@@ -1176,7 +1216,7 @@ function computeMetrics(applications, queue, pipeline, comms, drills, linkedinVi
       kind: 'queue',
       title: `${queueNeedsAttention.length} queue rows need review`,
       due: null,
-      link: '/tabs/career/applications',
+      link: `${ROUTE_BASE}/applications`,
     });
   }
   const overdueDrills = drills.problems.filter(p => p.state === 'overdue');
@@ -1185,7 +1225,7 @@ function computeMetrics(applications, queue, pipeline, comms, drills, linkedinVi
       kind: 'drills',
       title: `${overdueDrills.length} overdue blind redos`,
       due: null,
-      link: '/tabs/career/drills',
+      link: `${ROUTE_BASE}/drills`,
     });
   }
 
@@ -1195,11 +1235,16 @@ function computeMetrics(applications, queue, pipeline, comms, drills, linkedinVi
 
 function buildContext(now) {
   const huntStart = new Date(`${HUNT_START}T00:00:00Z`);
-  const lastDay = new Date(`${LAST_DAY}T00:00:00Z`);
   const today = startOfDay(now);
   const huntDay = Math.floor((today - huntStart) / 86400000) + 1;
-  const daysToLastDay = Math.floor((lastDay - today) / 86400000);
-  return { huntStart: HUNT_START, huntDay, lastDay: LAST_DAY, daysToLastDay };
+  let lastDay = null;
+  let daysToLastDay = null;
+  if (LAST_DAY) {
+    const lastDayDate = new Date(`${LAST_DAY}T00:00:00Z`);
+    daysToLastDay = Math.floor((lastDayDate - today) / 86400000);
+    lastDay = LAST_DAY;
+  }
+  return { person: PERSON, huntStart: HUNT_START, huntDay, lastDay, daysToLastDay };
 }
 
 function computeKpis(applications, queue, pipeline, schedule, drills, needsYou, metrics, now) {
@@ -1242,8 +1287,17 @@ function computeKpis(applications, queue, pipeline, schedule, drills, needsYou, 
 
 // ── Main ──────────────────────────────────────────────────────────────────
 
-function main() {
+function main(personKey) {
+  configure(personKey);
   const now = new Date();
+
+  // Individual parsers already warn-and-empty on a missing file or dir, so a
+  // missing JOB_HUNT_DIR never throws; it just cascades into every child
+  // path also being missing. This one extra warning names the actual root
+  // cause instead of leaving Tom to infer it from a dozen "not found" lines.
+  if (!fs.existsSync(JOB_HUNT_DIR)) {
+    warn(`job hunt directory not found (${JOB_HUNT_DIR})`);
+  }
 
   const applications = parseApplications(APPLICATIONS_FILE);
   const queue = parseQueue(QUEUE_FILE);
@@ -1255,9 +1309,9 @@ function main() {
 
   const comms = parseComms(COMMS_FILE);
   const linkedinViews = parseLinkedinViews(LINKEDIN_VIEWS_FILE);
-  const drills = parseDrillLog(DRILL_LOG_FILE, now);
+  const drills = FEATURES.drills ? parseDrillLog(DRILL_LOG_FILE, now) : emptyDrills();
   const playbook = parsePlaybook();
-  const kb = parseKb(KB_LOG_FILE);
+  const kb = FEATURES.kb ? parseKb(KB_LOG_FILE) : null;
 
   const { metrics, needsYou } = computeMetrics(applications, queue, pipeline, comms, drills, linkedinViews, now);
   const context = buildContext(now);
@@ -1285,11 +1339,43 @@ function main() {
     fs.writeFileSync(OUTPUT, JSON.stringify(output, null, 2));
   } catch (err) {
     console.error(`[career] Fatal: cannot write output to ${OUTPUT}: ${err.message}`);
-    process.exit(1);
+    throw err;
   }
 
-  console.log(`Generated career.json: ${applications.length} apps, ${queue.length} queue, ${pipeline.length} pipeline, ${drills.problems.length} drill problems, ${warnings.length} warnings`);
+  console.log(`Generated ${path.basename(OUTPUT)}: ${applications.length} apps, ${queue.length} queue, ${pipeline.length} pipeline, ${drills.problems.length} drill problems, ${warnings.length} warnings`);
   console.log(`  Output: ${OUTPUT}`);
 }
 
-main();
+// --person tom|sabrina runs one person; the default (no flag, or
+// --person all) runs every key in PERSONS in declaration order, which is
+// what the existing "node scripts/generate-career-data.js" allow rule in
+// .claude/settings.json and every regen hook already expect. A thrown
+// failure for one person (e.g. a write failure inside main()) is logged and
+// does not stop the other person's run; the process exits 1 only if every
+// requested person failed.
+function parsePersonArg(argv) {
+  const idx = argv.indexOf('--person');
+  return idx === -1 ? 'all' : argv[idx + 1];
+}
+
+const personArg = parsePersonArg(process.argv.slice(2));
+let personKeys;
+if (personArg === 'all') {
+  personKeys = Object.keys(PERSONS);
+} else if (PERSONS[personArg]) {
+  personKeys = [personArg];
+} else {
+  console.error(`[career] Unknown person: ${personArg}`);
+  process.exit(1);
+}
+
+let successCount = 0;
+for (const key of personKeys) {
+  try {
+    main(key);
+    successCount++;
+  } catch (err) {
+    console.error(`[career] Person "${key}" failed: ${err.message}`);
+  }
+}
+if (successCount === 0) process.exit(1);

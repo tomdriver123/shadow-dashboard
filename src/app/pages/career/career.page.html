@@ -1,7 +1,10 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-menu-button></ion-menu-button>
+      <ion-menu-button *ngIf="scope.features.menuButton"></ion-menu-button>
+      <ion-button *ngIf="!scope.features.menuButton" routerLink="/tabs/home" routerDirection="root">
+        <ion-icon slot="start" name="arrow-back-outline"></ion-icon>Tom
+      </ion-button>
     </ion-buttons>
     <ion-title>Career</ion-title>
     <ion-buttons slot="end">
@@ -35,30 +38,30 @@
     <div class="context-strip">
       <span class="chip chip--accent">Day {{ data.context.huntDay }} of the hunt</span>
       <span class="chip">{{ data.kpis.thisWeek }} application{{ data.kpis.thisWeek === 1 ? '' : 's' }} this week</span>
-      <span class="chip">Last day {{ data.context.lastDay | date:'MMM d' }}, {{ data.context.daysToLastDay }} day{{ data.context.daysToLastDay === 1 ? '' : 's' }}</span>
+      <span class="chip" *ngIf="data.context.lastDay">Last day {{ data.context.lastDay | date:'MMM d' }}, {{ data.context.daysToLastDay }} day{{ data.context.daysToLastDay === 1 ? '' : 's' }}</span>
     </div>
 
     <!-- ── KPI GRID ─────────────────────────────────────────────────── -->
     <section class="section">
       <div class="stat-grid">
-        <a class="stat-tile" routerLink="/tabs/career/applications">
+        <a class="stat-tile" [routerLink]="scope.base + '/applications'">
           <div class="stat-tile__label">Applications</div>
           <div class="stat-tile__value">{{ data.kpis.applications }}</div>
           <div class="stat-tile__sub">+{{ data.kpis.thisWeek }} this week</div>
         </a>
 
-        <a class="stat-tile" routerLink="/tabs/career/applications">
+        <a class="stat-tile" [routerLink]="scope.base + '/applications'">
           <div class="stat-tile__label">Awaiting response</div>
           <div class="stat-tile__value">{{ data.kpis.awaiting }}</div>
         </a>
 
-        <a class="stat-tile" routerLink="/tabs/career/pipeline">
+        <a class="stat-tile" [routerLink]="scope.base + '/pipeline'">
           <div class="stat-tile__label">Pipeline</div>
           <div class="stat-tile__value">{{ data.kpis.pipelineActive }}</div>
           <div class="stat-tile__sub">active</div>
         </a>
 
-        <a class="stat-tile" routerLink="/tabs/career/schedule">
+        <a class="stat-tile" [routerLink]="scope.base + '/schedule'">
           <div class="stat-tile__label">Next interview</div>
           <div class="stat-tile__value" *ngIf="nextUpcomingDate as d; else noInterviewSet">{{ d | date:'EEE MMM d' }}</div>
           <ng-template #noInterviewSet>
@@ -66,24 +69,24 @@
           </ng-template>
         </a>
 
-        <a class="stat-tile" routerLink="/tabs/career/applications">
+        <a class="stat-tile" [routerLink]="scope.base + '/applications'">
           <div class="stat-tile__label">Rejections</div>
           <div class="stat-tile__value">{{ data.kpis.rejected }}</div>
           <div class="stat-tile__sub">{{ responseRatePct }} response rate</div>
         </a>
 
-        <a class="stat-tile" routerLink="/tabs/career/drills">
+        <a class="stat-tile" [routerLink]="scope.base + '/drills'" *ngIf="scope.features.drills">
           <div class="stat-tile__label">Drills</div>
           <div class="stat-tile__value">{{ data.kpis.drillsLearned }} learned</div>
           <div class="stat-tile__sub">{{ drillAccuracyPct }} accuracy</div>
         </a>
 
-        <a class="stat-tile" routerLink="/tabs/career/drills">
+        <a class="stat-tile" [routerLink]="scope.base + '/drills'" *ngIf="scope.features.drills">
           <div class="stat-tile__label">Redo due</div>
           <div class="stat-tile__value">{{ data.kpis.drillsDue }}</div>
         </a>
 
-        <div class="stat-tile">
+        <div class="stat-tile" *ngIf="scope.features.kb">
           <div class="stat-tile__label">Knowledge base</div>
           <ng-container *ngIf="!data.kb">
             <div class="stat-tile__value stat-tile__value--muted">—</div>
@@ -101,17 +104,19 @@
     <section class="section">
       <h2 class="section-title">Needs you</h2>
       <div class="card-list" *ngIf="data.needsYou.length; else needsYouEmpty">
-        <a
-          class="card-row needs-you-row"
-          *ngFor="let item of data.needsYou; trackBy: trackByIndex"
-          [routerLink]="item.link"
-        >
-          <ion-icon [name]="needsYouIcon(item.kind)" class="needs-you-row__icon"></ion-icon>
-          <div class="needs-you-row__body">
-            <div class="needs-you-row__title">{{ item.title }}</div>
-            <span class="chip needs-you-row__due" *ngIf="item.due">Due {{ item.due | date:'MMM d' }}</span>
-          </div>
-        </a>
+        <ng-container *ngFor="let item of data.needsYou; trackBy: trackByIndex">
+          <a
+            class="card-row needs-you-row"
+            *ngIf="scope.features.drills || item.kind !== 'drills'"
+            [routerLink]="item.link"
+          >
+            <ion-icon [name]="needsYouIcon(item.kind)" class="needs-you-row__icon"></ion-icon>
+            <div class="needs-you-row__body">
+              <div class="needs-you-row__title">{{ item.title }}</div>
+              <span class="chip needs-you-row__due" *ngIf="item.due">Due {{ item.due | date:'MMM d' }}</span>
+            </div>
+          </a>
+        </ng-container>
       </div>
       <ng-template #needsYouEmpty>
         <p class="empty-state">Nothing waiting on you.</p>
@@ -122,7 +127,7 @@
     <section class="section">
       <div class="section-header-row">
         <h2 class="section-title">Next up</h2>
-        <a class="see-all" routerLink="/tabs/career/schedule">See all</a>
+        <a class="see-all" [routerLink]="scope.base + '/schedule'">See all</a>
       </div>
 
       <div class="card-list" *ngIf="upcomingPreview.length">
@@ -251,9 +256,9 @@
     </section>
 
     <!-- ── DRILL SNAPSHOT ───────────────────────────────────────────── -->
-    <section class="section">
+    <section class="section" *ngIf="scope.features.drills">
       <h2 class="section-title">Drills</h2>
-      <a class="card-row drill-snapshot" routerLink="/tabs/career/drills">
+      <a class="card-row drill-snapshot" [routerLink]="scope.base + '/drills'">
         <svg class="sparkline" viewBox="0 0 120 32" preserveAspectRatio="none" *ngIf="drillSparklinePoints">
           <polyline [attr.points]="drillSparklinePoints" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
@@ -288,7 +293,7 @@
     </section>
 
     <!-- ── LINKEDIN VIEWS ───────────────────────────────────────────── -->
-    <section class="section" *ngIf="data.metrics.linkedinViews.length >= 2">
+    <section class="section" *ngIf="scope.features.linkedinViews && data.metrics.linkedinViews.length >= 2">
       <h2 class="section-title">LinkedIn views</h2>
       <div class="stat-tile linkedin-tile">
         <div class="stat-tile__label">Profile views</div>

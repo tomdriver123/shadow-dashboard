@@ -1,7 +1,7 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-back-button defaultHref="/tabs/career"></ion-back-button>
+      <ion-back-button [defaultHref]="scope.base"></ion-back-button>
     </ion-buttons>
     <ion-title>Pipeline</ion-title>
   </ion-toolbar>
@@ -64,7 +64,7 @@
 </ion-content>
 
 <ng-template #cardTpl let-opp>
-  <a class="card-row pipeline-card" [routerLink]="['/tabs/career/pipeline', opp.id]">
+  <a class="card-row pipeline-card" [routerLink]="[scope.base + '/pipeline', opp.id]">
     <div class="pipeline-card__top">
       <span class="pipeline-card__company">{{ opp.company ?? 'Unknown company' }}</span>
       <span class="chip">{{ opp.employment }}</span>

@@ -1,7 +1,7 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-back-button defaultHref="/tabs/career/pipeline"></ion-back-button>
+      <ion-back-button [defaultHref]="scope.base + '/pipeline'"></ion-back-button>
     </ion-buttons>
     <ion-title>{{ opp?.company ?? 'Pipeline' }}</ion-title>
   </ion-toolbar>
@@ -22,7 +22,7 @@
     <div class="empty-state" *ngIf="!loading && !error && !opp">
       <ion-icon name="help-circle-outline" size="large"></ion-icon>
       <p>Opportunity not found. It may have been removed or renamed.</p>
-      <a class="back-link" routerLink="/tabs/career/pipeline">Back to Pipeline</a>
+      <a class="back-link" [routerLink]="scope.base + '/pipeline'">Back to Pipeline</a>
     </div>
 
     <ng-container *ngIf="!loading && !error && opp as opp">
@@ -128,7 +128,7 @@
         <a
           class="card-row link-row"
           *ngIf="opp.applicationId"
-          [routerLink]="['/tabs/career/applications', opp.applicationId]"
+          [routerLink]="[scope.base + '/applications', opp.applicationId]"
         >
           <ion-icon name="document-text-outline"></ion-icon> View application
         </a>

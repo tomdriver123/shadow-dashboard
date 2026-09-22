@@ -1,5 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { CareerService } from '../../../services/career.service';
+import { careerScopeFromRoute } from '../../../services/career-scope';
 import { CareerData, PipelineOpportunity } from '../../../services/career.model';
 
 interface StageColumnDef {
@@ -41,8 +43,10 @@ export class PipelinePage implements OnInit {
 
   private readonly careerService = inject(CareerService);
 
+  readonly scope = careerScopeFromRoute(inject(ActivatedRoute));
+
   ngOnInit(): void {
-    this.careerService.getCareerData().subscribe({
+    this.careerService.getCareerData(this.scope).subscribe({
       next: (data) => {
         this.data = data;
         this.columns = this.buildColumns(data.pipeline);

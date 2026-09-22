@@ -1,8 +1,10 @@
 import { Component, ElementRef, NgZone, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { formatDate } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
 import { CareerService } from '../../../services/career.service';
+import { careerScopeFromRoute } from '../../../services/career-scope';
 import { CareerData, DrillProblem, PatternAgg } from '../../../services/career.model';
 
 Chart.register(...registerables);
@@ -46,6 +48,8 @@ export class DrillsPage implements OnInit, OnDestroy {
   private readonly careerService = inject(CareerService);
   private readonly ngZone = inject(NgZone);
 
+  readonly scope = careerScopeFromRoute(inject(ActivatedRoute));
+
   data: CareerData | null = null;
   loading = true;
   error = false;
@@ -69,7 +73,7 @@ export class DrillsPage implements OnInit, OnDestroy {
   private chart: Chart | null = null;
 
   ngOnInit(): void {
-    this.sub = this.careerService.getCareerData().subscribe({
+    this.sub = this.careerService.getCareerData(this.scope).subscribe({
       next: (d) => {
         this.data = d;
         this.loading = false;

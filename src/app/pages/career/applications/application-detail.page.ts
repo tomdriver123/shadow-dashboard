@@ -1,12 +1,13 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { CareerService } from '../../../services/career.service';
+import { careerScopeFromRoute } from '../../../services/career-scope';
 import { CareerApplication, CommsEntry } from '../../../services/career.model';
 
 /**
  * Application detail: header, posting link, comp/points basis, fit,
  * timeline, resume variant, linked pipeline opportunity, and comms.
- * Route: /tabs/career/applications/:id
+ * Route: <scope.base>/applications/:id
  */
 @Component({
   selector: 'app-career-application-detail',
@@ -23,13 +24,15 @@ export class ApplicationDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly careerService = inject(CareerService);
 
+  readonly scope = careerScopeFromRoute(inject(ActivatedRoute));
+
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) {
       this.loading = false;
       return;
     }
-    this.careerService.getApplication(id).subscribe({
+    this.careerService.getApplication(this.scope, id).subscribe({
       next: (app) => {
         this.application = app ?? null;
         this.loading = false;
@@ -43,7 +46,7 @@ export class ApplicationDetailPage implements OnInit {
   }
 
   private loadComms(app: CareerApplication): void {
-    this.careerService.getCareerData().subscribe({
+    this.careerService.getCareerData(this.scope).subscribe({
       next: (data) => {
         this.comms = this.matchComms(data.comms, app);
       },

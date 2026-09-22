@@ -3,6 +3,7 @@ import { formatDate } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { combineLatest } from 'rxjs';
 import { CareerService } from '../../../services/career.service';
+import { careerScopeFromRoute } from '../../../services/career-scope';
 import { DrillAttempt, DrillProblem, RedoItem } from '../../../services/career.model';
 
 /**
@@ -21,6 +22,8 @@ export class DrillDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly careerService = inject(CareerService);
 
+  readonly scope = careerScopeFromRoute(inject(ActivatedRoute));
+
   loading = true;
   error = false;
   problem: DrillProblem | null = null;
@@ -28,7 +31,10 @@ export class DrillDetailPage implements OnInit {
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id') ?? '';
-    combineLatest([this.careerService.getDrillProblem(id), this.careerService.getCareerData()]).subscribe({
+    combineLatest([
+      this.careerService.getDrillProblem(this.scope, id),
+      this.careerService.getCareerData(this.scope),
+    ]).subscribe({
       next: ([problem, data]) => {
         this.problem = problem ?? null;
         this.redoItem = problem ? data.drills.redoQueue.find((r) => r.problem === problem.name) ?? null : null;

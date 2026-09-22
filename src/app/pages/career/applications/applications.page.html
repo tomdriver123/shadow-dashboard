@@ -1,7 +1,7 @@
 <ion-header>
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-back-button defaultHref="/tabs/career"></ion-back-button>
+      <ion-back-button [defaultHref]="scope.base"></ion-back-button>
     </ion-buttons>
     <ion-title>Applications</ion-title>
   </ion-toolbar>
@@ -134,7 +134,7 @@
               <tbody>
                 <tr
                   *ngFor="let app of filteredApplications"
-                  [routerLink]="['/tabs/career/applications', app.id]"
+                  [routerLink]="[scope.base + '/applications', app.id]"
                 >
                   <td>{{ app.date | date:'MMM d' }}</td>
                   <td>{{ app.company }}</td>
@@ -158,7 +158,7 @@
               <div
                 class="card-row card-row--link"
                 *ngFor="let app of filteredApplications"
-                [routerLink]="['/tabs/career/applications', app.id]"
+                [routerLink]="[scope.base + '/applications', app.id]"
               >
                 <div class="card-row__top">
                   <div class="card-row__title">
@@ -232,7 +232,7 @@
               <a class="post-link" [href]="row.url" target="_blank" rel="noopener">
                 <ion-icon name="open-outline"></ion-icon> View posting
               </a>
-              <div class="verdict-btns" *ngIf="showVerdictButtons(row)">
+              <div class="verdict-btns" *ngIf="scope.features.queueVerdict && showVerdictButtons(row)">
                 <button
                   class="verdict-btn liked"
                   [class.active]="verdictState[row.id] === 'liked'"

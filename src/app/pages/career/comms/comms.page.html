@@ -1,7 +1,7 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-back-button defaultHref="/tabs/career"></ion-back-button>
+      <ion-back-button [defaultHref]="scope.base"></ion-back-button>
     </ion-buttons>
     <ion-title>Comms</ion-title>
   </ion-toolbar>
@@ -94,7 +94,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let c of filteredComms" [routerLink]="c.pipelineId ? ['/tabs/career/pipeline', c.pipelineId] : null">
+                <tr *ngFor="let c of filteredComms" [routerLink]="c.pipelineId ? [scope.base + '/pipeline', c.pipelineId] : null">
                   <td>{{ c.date | date:'MMM d' }}</td>
                   <td>{{ c.company }}</td>
                   <td [title]="directionTitle(c.direction)">{{ directionArrow(c.direction) }}</td>
@@ -111,7 +111,7 @@
           <div
             class="card-row comms-card"
             *ngFor="let c of filteredComms"
-            [routerLink]="c.pipelineId ? ['/tabs/career/pipeline', c.pipelineId] : null"
+            [routerLink]="c.pipelineId ? [scope.base + '/pipeline', c.pipelineId] : null"
           >
             <div class="comms-card__top">
               <span class="comms-card__date">{{ c.date | date:'MMM d' }}</span>

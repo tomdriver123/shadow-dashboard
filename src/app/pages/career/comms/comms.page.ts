@@ -1,5 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { CareerService } from '../../../services/career.service';
+import { careerScopeFromRoute } from '../../../services/career-scope';
 import { CareerData, CommsEntry } from '../../../services/career.model';
 
 interface WaitingRow {
@@ -29,8 +31,10 @@ export class CommsPage implements OnInit {
   private today = new Date().toISOString().slice(0, 10);
   private readonly careerService = inject(CareerService);
 
+  readonly scope = careerScopeFromRoute(inject(ActivatedRoute));
+
   ngOnInit(): void {
-    this.careerService.getCareerData().subscribe({
+    this.careerService.getCareerData(this.scope).subscribe({
       next: (data) => {
         this.data = data;
         this.waitingOnTom = this.buildWaitingRows(data, 'tom');
@@ -88,7 +92,7 @@ export class CommsPage implements OnInit {
         company: p.company ?? 'Unknown company',
         summary: p.nextAction ?? 'No next action logged',
         due: p.nextActionDue,
-        link: '/tabs/career/pipeline/' + p.id,
+        link: this.scope.base + '/pipeline/' + p.id,
       }));
     const fromComms: WaitingRow[] = data.comms
       .filter((c) => c.ball === ball)
@@ -96,7 +100,7 @@ export class CommsPage implements OnInit {
         company: c.company,
         summary: c.summary,
         due: c.due,
-        link: c.pipelineId ? '/tabs/career/pipeline/' + c.pipelineId : null,
+        link: c.pipelineId ? this.scope.base + '/pipeline/' + c.pipelineId : null,
       }));
     return [...fromPipeline, ...fromComms].sort((a, b) => {
       if (a.due === b.due) return 0;

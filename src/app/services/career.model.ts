@@ -266,10 +266,11 @@ export interface NeedsYouItem {
 }
 
 export interface CareerContext {
+  person: string;
   huntStart: string;
   huntDay: number;
-  lastDay: string;
-  daysToLastDay: number;
+  lastDay: string | null;
+  daysToLastDay: number | null;
 }
 
 export interface CareerKpis {
