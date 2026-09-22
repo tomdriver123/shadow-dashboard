@@ -2,5 +2,9 @@
   "/api/feedback": {
     "target": "http://127.0.0.1:4201",
     "secure": false
+  },
+  "/api/quiz": {
+    "target": "http://127.0.0.1:4201",
+    "secure": false
   }
 }

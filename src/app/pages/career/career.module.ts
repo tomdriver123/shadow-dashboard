@@ -14,6 +14,7 @@ import { DrillsPage } from './drills/drills.page';
 import { DrillDetailPage } from './drills/drill-detail.page';
 import { KbPage } from './kb/kb.page';
 import { KbDetailPage } from './kb/kb-detail.page';
+import { KbQuizCardComponent } from './kb/kb-quiz-card/kb-quiz-card.component';
 import { CommsPage } from './comms/comms.page';
 import { PlaybookPage } from './playbook/playbook.page';
 
@@ -30,6 +31,7 @@ import { PlaybookPage } from './playbook/playbook.page';
     DrillDetailPage,
     KbPage,
     KbDetailPage,
+    KbQuizCardComponent,
     CommsPage,
     PlaybookPage,
   ],

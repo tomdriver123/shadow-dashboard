@@ -318,6 +318,15 @@
       </a>
     </section>
 
+    <!-- ── KNOWLEDGE CHECK ──────────────────────────────────────────── -->
+    <section class="section" *ngIf="scope.features.kb && data.kb">
+      <div class="section-header-row">
+        <h2 class="section-title">Knowledge check</h2>
+        <a class="see-all" [routerLink]="scope.base + '/kb'">See all</a>
+      </div>
+      <app-kb-quiz-card [scope]="scope" [kb]="data.kb"></app-kb-quiz-card>
+    </section>
+
     <!-- ── MIX STRIP ────────────────────────────────────────────────── -->
     <section class="section">
       <h2 class="section-title">Mix</h2>

@@ -313,8 +313,8 @@ export interface KbAttempt {
   tier: string;
 }
 
-// asked | due | learned | retired. Kept as `string`, not a union, for the
-// same reason as DrillState above.
+// asked | due | learned | retired | queued. Kept as `string`, not a union,
+// for the same reason as DrillState above.
 export type KbStatus = string;
 
 export interface KbQuestion {
@@ -366,6 +366,8 @@ export interface KbData extends KbSummary {
   topicStates: KbTopicState[];
   recallDue: KbRecallItem[];
   items: KbQuestion[];
+  queue: string[];
+  offlinePending: number;
   currentPositionMd: string;
   weakSpotsMd: string;
 }

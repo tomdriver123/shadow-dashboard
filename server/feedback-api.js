@@ -58,6 +58,23 @@ const QUEUE_ID_RE = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const MAX_VERDICT_BODY_BYTES = 4096;
 const VERDICTS = ['liked', 'passed'];
 
+// ── quiz offline attempts ─────────────────────────────────────────────────
+// POST /api/quiz/attempt and GET /api/quiz/attempts: dashboard-local quiz
+// grading with no LLM running. Each attempt drops one frontmatter-only file
+// under OFFLINE_DIR; the /quiz skill reconciles these into kb-log.md later
+// and deletes the file as it goes. This route never touches kb-log.md, the
+// question bank, or the career generator.
+
+const OFFLINE_DIR = path.resolve(
+  __dirname, '..', '..', 'vault', 'projects', 'job-hunt', 'interview-prep', 'kb', 'offline'
+);
+const QUESTION_ID_RE = /^[a-z]{2,6}-\d{3,}$/;
+const QUIZ_TOPIC_RE = /^[a-z0-9][a-z0-9-]{0,31}$/;
+const LETTER_RE = /^[A-F]$/;
+const QUIZ_RESULTS = ['pass', 'miss'];
+const ANSWERED_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/;
+const MAX_QUIZ_BODY_BYTES = 4096;
+
 const IMAGE_TYPES = {
   'image/png': 'png',
   'image/jpeg': 'jpg',
@@ -495,6 +512,180 @@ async function handleJobsVerdict(req, res) {
   sendJson(res, 200, { ok: true, id, verdict });
 }
 
+// ── POST /api/quiz/attempt, GET /api/quiz/attempts ────────────────────────
+
+function offlineEntryPath(questionId) {
+  return path.join(OFFLINE_DIR, `${questionId}.md`);
+}
+
+function parseOfflineEntry(raw) {
+  if (!raw.startsWith('---\n')) return null;
+  const lines = raw.split('\n');
+
+  let i = 1;
+  const fmLines = [];
+  let closed = false;
+  for (; i < lines.length; i++) {
+    if (lines[i] === '---') {
+      closed = true;
+      break;
+    }
+    fmLines.push(lines[i]);
+  }
+  if (!closed) return null;
+
+  const fm = {};
+  for (const line of fmLines) {
+    const m = /^([a-zA-Z_]+):\s*(.*)$/.exec(line);
+    if (m) fm[m[1]] = m[2].trim();
+  }
+
+  return {
+    id: fm.id ?? null,
+    question: fm.question ?? null,
+    topic: fm.topic ?? null,
+    pick: fm.pick ?? null,
+    answer: fm.answer ?? null,
+    result: fm.result ?? null,
+    answered: fm.answered ?? null,
+    source: fm.source ?? null,
+  };
+}
+
+function readOfflineEntry(questionId) {
+  const fp = offlineEntryPath(questionId);
+  if (!fs.existsSync(fp)) return null;
+  try {
+    return parseOfflineEntry(fs.readFileSync(fp, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function listOfflineEntries() {
+  let files;
+  try {
+    files = fs.readdirSync(OFFLINE_DIR).filter((f) => f.endsWith('.md'));
+  } catch {
+    files = [];
+  }
+
+  const entries = [];
+  for (const file of files) {
+    try {
+      const raw = fs.readFileSync(path.join(OFFLINE_DIR, file), 'utf8');
+      const entry = parseOfflineEntry(raw);
+      if (!entry) throw new Error('missing or malformed frontmatter block');
+      entries.push(entry);
+    } catch (err) {
+      process.stderr.write(`[feedback-api] skipping unparsable offline entry ${file}: ${err.message}\n`);
+    }
+  }
+
+  entries.sort((a, b) => {
+    const ad = a.answered ? Date.parse(a.answered) : NaN;
+    const bd = b.answered ? Date.parse(b.answered) : NaN;
+    const aValid = !Number.isNaN(ad);
+    const bValid = !Number.isNaN(bd);
+    if (aValid && bValid && ad !== bd) return ad - bd;
+    if (aValid && !bValid) return -1;
+    if (!aValid && bValid) return 1;
+    return String(a.id).localeCompare(String(b.id));
+  });
+
+  return entries;
+}
+
+async function handleQuizAttempt(req, res) {
+  const raw = await readBody(req, res, MAX_QUIZ_BODY_BYTES);
+  if (raw === null) return; // 413 already sent, or the connection died
+
+  let data;
+  try {
+    data = JSON.parse(raw.toString('utf8'));
+  } catch {
+    sendJson(res, 400, { error: 'invalid JSON body' });
+    return;
+  }
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    sendJson(res, 400, { error: 'body must be a JSON object' });
+    return;
+  }
+
+  const { questionId, topic, pick, answer, result, answered } = data;
+
+  if (typeof questionId !== 'string' || !QUESTION_ID_RE.test(questionId)) {
+    sendJson(res, 400, { error: 'questionId must match /^[a-z]{2,6}-\\d{3,}$/' });
+    return;
+  }
+  if (typeof topic !== 'string' || !QUIZ_TOPIC_RE.test(topic)) {
+    sendJson(res, 400, { error: 'topic must match /^[a-z0-9][a-z0-9-]{0,31}$/' });
+    return;
+  }
+  if (typeof pick !== 'string' || !LETTER_RE.test(pick)) {
+    sendJson(res, 400, { error: 'pick must match /^[A-F]$/' });
+    return;
+  }
+  if (typeof answer !== 'string' || !LETTER_RE.test(answer)) {
+    sendJson(res, 400, { error: 'answer must match /^[A-F]$/' });
+    return;
+  }
+  if (typeof result !== 'string' || !QUIZ_RESULTS.includes(result)) {
+    sendJson(res, 400, { error: `result must be one of ${QUIZ_RESULTS.join(', ')}` });
+    return;
+  }
+  if (typeof answered !== 'string' || !ANSWERED_RE.test(answered) || Number.isNaN(Date.parse(answered))) {
+    sendJson(res, 400, {
+      error: 'answered must match /^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}$/ with an explicit local offset (no Z) and be parseable',
+    });
+    return;
+  }
+
+  // Idempotent retry: the file already exists. Respond with what is
+  // actually stored and write nothing new.
+  const existing = readOfflineEntry(questionId);
+  if (existing) {
+    sendJson(res, 200, { entry: existing });
+    return;
+  }
+
+  fs.mkdirSync(OFFLINE_DIR, { recursive: true });
+
+  const fp = offlineEntryPath(questionId);
+  const resolved = path.resolve(fp);
+  if (resolved !== fp || !resolved.startsWith(OFFLINE_DIR + path.sep)) {
+    sendJson(res, 400, { error: 'invalid questionId path' });
+    return;
+  }
+
+  const md =
+    `---\n` +
+    `id: ${questionId}\n` +
+    `question: ${questionId}\n` +
+    `topic: ${topic}\n` +
+    `pick: ${pick}\n` +
+    `answer: ${answer}\n` +
+    `result: ${result}\n` +
+    `answered: ${answered}\n` +
+    `source: dashboard\n` +
+    `---\n`;
+
+  const tmp = `${resolved}.tmp`;
+  try {
+    fs.writeFileSync(tmp, md, 'utf8');
+    fs.renameSync(tmp, resolved);
+  } catch (err) {
+    sendJson(res, 500, { error: `failed to write attempt: ${err.message}` });
+    return;
+  }
+
+  sendJson(res, 201, { entry: readOfflineEntry(questionId) });
+}
+
+function handleQuizAttempts(res) {
+  sendJson(res, 200, { entries: listOfflineEntries() });
+}
+
 // ── GET /api/feedback/attachments/:author/:file ───────────────────────────
 
 function serveAttachment(res, pathname) {
@@ -555,7 +746,13 @@ async function handleRequest(req, res, method, pathname, urlObj) {
   }
 
   if (method === 'GET' && pathname === '/api/feedback/health') {
-    sendJson(res, 200, { ok: true, root: ROOT, authors: AUTHORS, queue: SABRINA_QUEUE });
+    sendJson(res, 200, {
+      ok: true,
+      root: ROOT,
+      authors: AUTHORS,
+      queue: SABRINA_QUEUE,
+      quizOfflineDir: OFFLINE_DIR,
+    });
     return;
   }
 
@@ -581,6 +778,16 @@ async function handleRequest(req, res, method, pathname, urlObj) {
 
   if (method === 'POST' && pathname === '/api/feedback') {
     await handlePost(req, res);
+    return;
+  }
+
+  if (method === 'POST' && pathname === '/api/quiz/attempt') {
+    await handleQuizAttempt(req, res);
+    return;
+  }
+
+  if (method === 'GET' && pathname === '/api/quiz/attempts') {
+    handleQuizAttempts(res);
     return;
   }
 

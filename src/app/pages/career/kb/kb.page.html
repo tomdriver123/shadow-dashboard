@@ -27,6 +27,9 @@
 
       <ng-container *ngIf="data.kb as kb">
 
+        <!-- ── Knowledge check ───────────────────────────────────────── -->
+        <app-kb-quiz-card [scope]="scope" [kb]="kb"></app-kb-quiz-card>
+
         <!-- ── KPI mini row ──────────────────────────────────────────── -->
         <section class="section">
           <div class="stat-grid stat-grid--kpi">

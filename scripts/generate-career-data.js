@@ -1362,6 +1362,24 @@ function parseKbBank(dir) {
   return { topicStates: topicStatesOut, items: allItems, byLevel, attemptCount };
 }
 
+// Counts *.md files sitting in <kbDir>/offline, the drop point for answers
+// submitted from the offline queue card (POSTed one file per questionId,
+// kb/offline/<questionId>.md). parseKbBank() already skips this
+// subdirectory when it walks kbDir non recursively, so it never shows up as
+// a bank file. A missing offline/ dir is the normal case (nothing has been
+// answered offline yet), so this stays silent rather than warning; any
+// other read error still goes through warn() and returns 0.
+function countOfflinePending(kbDir) {
+  const offlineDir = path.join(kbDir, 'offline');
+  if (!fs.existsSync(offlineDir)) return 0;
+  try {
+    return fs.readdirSync(offlineDir).filter(f => f.endsWith('.md')).length;
+  } catch (err) {
+    warn(`kb/offline: read error: ${err.message}`);
+    return 0;
+  }
+}
+
 // Combines the log (parseKb, unchanged) with the bank (parseKbBank) into
 // the payload the Career tab kb tile and pages read. Returns null only when
 // neither the log nor any bank file exists for this person.
@@ -1404,6 +1422,23 @@ function buildKb(logPath, kbDir) {
     }
   }
 
+  // Round robin across topics so the card does not serve four javascript
+  // questions in a row. Within a topic the order stays id ascending, which
+  // keeps the sequence stable between runs.
+  const queue = [];
+  if (bank) {
+    const byTopic = new Map();
+    for (const it of bank.items.filter(i => i.status === 'queued')) {
+      if (!byTopic.has(it.topic)) byTopic.set(it.topic, []);
+      byTopic.get(it.topic).push(it.id);
+    }
+    const lanes = [...byTopic.keys()].sort().map(t => byTopic.get(t).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)));
+    for (let i = 0; queue.length < lanes.reduce((n, l) => n + l.length, 0); i++) {
+      for (const lane of lanes) if (i < lane.length) queue.push(lane[i]);
+    }
+  }
+  const offlinePending = countOfflinePending(kbDir);
+
   return {
     ...(summary || { topics: 0, questions: 0, accuracy: null }),
     activeDeck,
@@ -1411,6 +1446,8 @@ function buildKb(logPath, kbDir) {
     topicStates,
     recallDue,
     items,
+    queue,
+    offlinePending,
     currentPositionMd,
     weakSpotsMd,
   };

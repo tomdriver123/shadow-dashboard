@@ -1,0 +1,53 @@
+<section class="quiz-card">
+
+  <p class="empty-state" *ngIf="!current">No questions queued. Run /quiz to refill.</p>
+
+  <ng-container *ngIf="current as q">
+
+    <div class="quiz-card__meta">{{ q.topic }} · {{ q.level }} · {{ q.kind }}</div>
+
+    <div class="stem-body">
+      <markdown [data]="q.stem"></markdown>
+    </div>
+
+    <!-- Unanswered: tappable options -->
+    <div class="options" *ngIf="!answer">
+      <button class="option option--tappable" *ngFor="let o of q.options" (click)="pick(o.letter)">
+        <span class="option__letter">{{ o.letter }}</span>
+        <span class="option__text">{{ o.text }}</span>
+      </button>
+    </div>
+
+    <!-- Answered: graded options plus verdict -->
+    <ng-container *ngIf="answer">
+      <div class="options">
+        <div
+          class="option"
+          *ngFor="let o of q.options"
+          [class.option--correct]="isCorrect(o.letter)"
+          [class.option--picked]="isPicked(o.letter) && !isCorrect(o.letter)"
+        >
+          <span class="option__letter">{{ o.letter }}</span>
+          <span class="option__text">{{ o.text }}</span>
+        </div>
+      </div>
+
+      <div class="verdict" [class.verdict--pass]="answer.result === 'pass'" [class.verdict--miss]="answer.result === 'miss'">
+        <ion-icon [name]="answer.result === 'pass' ? 'checkmark-circle-outline' : 'close-circle-outline'"></ion-icon>
+        <span *ngIf="answer.result === 'pass'">Correct</span>
+        <span *ngIf="answer.result === 'miss'">You picked {{ answer.pick }}, the answer is {{ q.answer }}</span>
+      </div>
+
+      <div class="why-body">
+        <markdown [data]="q.why"></markdown>
+      </div>
+
+      <div class="quiz-card__actions">
+        <button class="toggle-btn" (click)="next()">Next question</button>
+        <a class="see-all" [routerLink]="[scope.base + '/kb', q.id]">Rubric and model answer</a>
+      </div>
+    </ng-container>
+
+  </ng-container>
+
+</section>
