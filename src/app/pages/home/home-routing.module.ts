@@ -4,7 +4,7 @@ import { HomeShellPage } from './home.page';
 
 const routes: Routes = [
   { path: ':dashboardId', component: HomeShellPage },
-  { path: '', redirectTo: 'finance', pathMatch: 'full' },
+  { path: '', redirectTo: 'pipeline', pathMatch: 'full' },
 ];
 
 @NgModule({

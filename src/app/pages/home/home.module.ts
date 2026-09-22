@@ -8,6 +8,7 @@ import { FinanceDashboardComponent } from './dashboards/finance/finance-dashboar
 import { RemindersDashboardComponent } from './dashboards/reminders/reminders-dashboard.component';
 import { EmailDashboardComponent } from './dashboards/email/email-dashboard.component';
 import { JobsDashboardComponent } from './dashboards/jobs/jobs-dashboard.component';
+import { PipelineDashboardComponent } from './dashboards/pipeline/pipeline-dashboard.component';
 
 @NgModule({
   imports: [CommonModule, IonicModule, HomeRoutingModule],
@@ -18,6 +19,7 @@ import { JobsDashboardComponent } from './dashboards/jobs/jobs-dashboard.compone
     RemindersDashboardComponent,
     EmailDashboardComponent,
     JobsDashboardComponent,
+    PipelineDashboardComponent,
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })

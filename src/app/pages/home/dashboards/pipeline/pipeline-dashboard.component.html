@@ -1,0 +1,86 @@
+<div class="pipeline-dash">
+  <div class="state-placeholder" *ngIf="loading">
+    <ion-spinner name="crescent"></ion-spinner>
+  </div>
+
+  <div class="state-placeholder" *ngIf="error && !loading">
+    <ion-icon name="alert-circle-outline" size="large"></ion-icon>
+    <p>Could not load career data. Run node scripts/generate-career-data.js</p>
+  </div>
+
+  <ng-container *ngIf="!loading && !error && data">
+    <div class="meta-line">
+      {{ activeCount }} active &middot; day {{ data.context.huntDay }}<ng-container *ngIf="data.context.daysToLastDay !== null"> &middot; {{ data.context.daysToLastDay }} days to last day</ng-container> &middot; synced {{ data.generatedAt | date:'MMM d' }}
+    </div>
+
+    <!-- ── NEEDS YOU ────────────────────────────────────────────────── -->
+    <section class="section">
+      <h2 class="section-title">Needs you</h2>
+      <div class="card-list" *ngIf="needsYouPreview.length; else needsYouEmpty">
+        <a
+          class="card-row needs-you-row"
+          *ngFor="let item of needsYouPreview; trackBy: trackByIndex"
+          [routerLink]="item.link"
+        >
+          <ion-icon [name]="needsYouIcon(item.kind)" class="needs-you-row__icon"></ion-icon>
+          <div class="needs-you-row__body">
+            <div class="needs-you-row__title">{{ item.title }}</div>
+            <span class="chip needs-you-row__due" *ngIf="item.due">Due {{ item.due | date:'MMM d' }}</span>
+          </div>
+        </a>
+      </div>
+      <ng-template #needsYouEmpty>
+        <p class="empty-state">Nothing waiting on you.</p>
+      </ng-template>
+    </section>
+
+    <!-- ── NEXT UP ──────────────────────────────────────────────────── -->
+    <section class="section" *ngIf="upcomingPreview.length">
+      <h2 class="section-title">Next up</h2>
+      <div class="card-list">
+        <div class="card-row event-row" *ngFor="let ev of upcomingPreview; trackBy: trackByIndex">
+          <div class="event-row__main">
+            <span class="event-row__company">{{ ev.company || '—' }}</span>
+            <span class="event-row__stage">{{ ev.stage || '—' }}</span>
+          </div>
+          <div class="event-row__meta">
+            <span>{{ ev.date | date:'EEE MMM d, h:mm a' }}</span>
+            <span *ngIf="ev.with">with {{ ev.with }}</span>
+            <a *ngIf="ev.link" [href]="ev.link" target="_blank" rel="noopener noreferrer">Join link</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── PIPELINE ─────────────────────────────────────────────────── -->
+    <section class="section">
+      <div class="section-header-row">
+        <h2 class="section-title">Pipeline</h2>
+        <a class="see-all" routerLink="/tabs/career/pipeline">See all</a>
+      </div>
+      <div class="card-list" *ngIf="topPipeline.length; else pipelineEmpty">
+        <a
+          class="card-row pipe-row"
+          *ngFor="let p of topPipeline; trackBy: trackByIndex"
+          [routerLink]="'/tabs/career/pipeline/' + p.id"
+        >
+          <div class="pipe-row__top">
+            <span class="pipe-row__company">{{ p.company || 'Unknown company' }}</span>
+            <span class="chip" *ngIf="p.points !== null">{{ p.points }} pts</span>
+          </div>
+          <div class="pipe-row__role">{{ p.role || 'Unknown role' }}</div>
+          <div class="pipe-row__meta">
+            <span class="pipe-row__stage" *ngIf="p.currentStage">{{ p.currentStage }}</span>
+            <span class="chip chip--accent" *ngIf="p.ball === 'tom'">you</span>
+            <span class="chip" *ngIf="p.ball === 'them'">them</span>
+            <span class="pipe-row__action" *ngIf="p.nextAction">{{ p.nextAction }}</span>
+            <span class="pipe-row__due" *ngIf="p.nextActionDue">due {{ p.nextActionDue | date:'MMM d' }}</span>
+          </div>
+        </a>
+      </div>
+      <ng-template #pipelineEmpty>
+        <p class="empty-state">No live opportunities yet.</p>
+      </ng-template>
+    </section>
+  </ng-container>
+</div>

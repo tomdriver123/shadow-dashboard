@@ -1666,6 +1666,10 @@ function computeMetrics(applications, queue, pipeline, comms, drills, linkedinVi
     });
   }
 
+  // Soonest due first; undated counters (queue, drills) sink to the bottom. Sort is stable, so ties keep file order.
+  const dueKey = item => item.due || '9999-12-31';
+  needsYou.sort((a, b) => dueKey(a).localeCompare(dueKey(b)));
+
   const metrics = { weekly, funnel, mix, responseRate, medianDaysToRejection, staleIds, linkedinViews };
   return { metrics, needsYou };
 }

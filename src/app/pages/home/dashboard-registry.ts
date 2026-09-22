@@ -3,6 +3,7 @@ import { FinanceDashboardComponent } from './dashboards/finance/finance-dashboar
 import { JobsDashboardComponent } from './dashboards/jobs/jobs-dashboard.component';
 import { RemindersDashboardComponent } from './dashboards/reminders/reminders-dashboard.component';
 import { EmailDashboardComponent } from './dashboards/email/email-dashboard.component';
+import { PipelineDashboardComponent } from './dashboards/pipeline/pipeline-dashboard.component';
 
 export interface DashboardDef {
   id: string;
@@ -14,6 +15,13 @@ export interface DashboardDef {
 }
 
 export const DASHBOARDS: DashboardDef[] = [
+  {
+    id: 'pipeline',
+    title: 'Pipeline',
+    icon: 'git-branch-outline',
+    component: PipelineDashboardComponent,
+    hasRealData: true,
+  },
   {
     id: 'finance',
     title: 'Finance',
