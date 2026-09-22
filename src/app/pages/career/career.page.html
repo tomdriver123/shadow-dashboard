@@ -46,6 +46,48 @@
       <span class="chip" *ngIf="data.context.lastDay">Last day {{ data.context.lastDay | date:'MMM d' }}, {{ data.context.daysToLastDay }} day{{ data.context.daysToLastDay === 1 ? '' : 's' }}</span>
     </div>
 
+    <!-- ── QUEUE PREVIEW (her portal leads with the scan queue) ───────── -->
+    <section class="section" *ngIf="scope.features.queuePreview">
+      <div class="section-header-row">
+        <h2 class="section-title">Queue · {{ queueWaiting.length }} waiting</h2>
+        <a class="see-all" [routerLink]="scope.base + '/applications'" [queryParams]="{ tab: 'queue' }">See all</a>
+      </div>
+
+      <div class="card-list" *ngIf="queuePreview.length; else queueEmpty">
+        <div class="card-row queue-row" *ngFor="let row of queuePreview; trackBy: trackByQueueId">
+          <div class="queue-row__top">
+            <div class="queue-row__title">
+              <div class="queue-row__company">{{ row.company }}</div>
+              <div class="queue-row__role">{{ row.role }}</div>
+            </div>
+            <span class="chip chip--accent" *ngIf="row.score !== null">{{ row.score }}/10</span>
+          </div>
+          <div class="queue-row__meta">
+            <span class="chip">{{ row.salaryText || 'not posted' }}</span>
+            <span class="chip" *ngIf="row.status === 'manual'">apply by hand</span>
+          </div>
+          <div class="queue-row__footer">
+            <a class="post-link" [href]="row.url" target="_blank" rel="noopener">
+              <ion-icon name="open-outline"></ion-icon> View posting
+            </a>
+            <div class="verdict-btns">
+              <button class="verdict-btn liked" [disabled]="isQueueVoting(row)" (click)="voteQueue(row, 'liked')" aria-label="Thumbs up">
+                <ion-spinner *ngIf="isQueueVoting(row)" name="crescent" class="btn-spinner"></ion-spinner>
+                <span *ngIf="!isQueueVoting(row)">👍</span>
+              </button>
+              <button class="verdict-btn passed" [disabled]="isQueueVoting(row)" (click)="voteQueue(row, 'passed')" aria-label="Thumbs down">
+                <ion-spinner *ngIf="isQueueVoting(row)" name="crescent" class="btn-spinner"></ion-spinner>
+                <span *ngIf="!isQueueVoting(row)">👎</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ng-template #queueEmpty>
+        <p class="empty-state">Queue is clear. Nothing waiting on you.</p>
+      </ng-template>
+    </section>
+
     <!-- ── KPI GRID ─────────────────────────────────────────────────── -->
     <section class="section">
       <div class="stat-grid">

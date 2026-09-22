@@ -3,11 +3,13 @@ import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
 import { CareerService } from '../../services/career.service';
+import { CareerVerdictService, Verdict } from '../../services/career-verdict.service';
 import { careerScopeFromRoute } from '../../services/career-scope';
 import { PortalService } from '../../services/portal.service';
 import {
   AccuracyPoint,
   CareerData,
+  CareerQueueRow,
   KNOWN_BANDS,
   KNOWN_EMPLOYMENT_TYPES,
   KNOWN_LOCATIONS,
@@ -68,6 +70,7 @@ interface MixDimension {
 })
 export class CareerPage implements OnInit, OnDestroy {
   private careerService = inject(CareerService);
+  private careerVerdict = inject(CareerVerdictService);
   private ngZone = inject(NgZone);
 
   readonly scope = careerScopeFromRoute(inject(ActivatedRoute));
@@ -82,6 +85,37 @@ export class CareerPage implements OnInit, OnDestroy {
 
   private sub: Subscription | null = null;
   private weeklyChart: Chart | null = null;
+
+  // ── Queue preview (scope.features.queuePreview) ──────────────────────
+  // Rows she has not answered yet. A vote flips row.status through the
+  // shared gesture, so the card drops out of both getters on its own and
+  // the next unanswered row takes its place; the refresh then brings the
+  // regenerated JSON behind it.
+  private queueVoting = new Set<string>();
+
+  get queueWaiting(): CareerQueueRow[] {
+    return (this.data?.queue ?? []).filter((r) => r.status === 'queued' || r.status === 'manual');
+  }
+
+  get queuePreview(): CareerQueueRow[] {
+    return [...this.queueWaiting]
+      .sort((a, b) => b.date.localeCompare(a.date) || (b.score ?? -1) - (a.score ?? -1))
+      .slice(0, 3);
+  }
+
+  isQueueVoting(row: CareerQueueRow): boolean {
+    return this.queueVoting.has(row.id);
+  }
+
+  async voteQueue(row: CareerQueueRow, verdict: Verdict): Promise<void> {
+    if (this.queueVoting.has(row.id)) return;
+    await this.careerVerdict.vote(this.scope, row, verdict, () => this.queueVoting.add(row.id));
+    this.queueVoting.delete(row.id);
+  }
+
+  trackByQueueId(_: number, row: CareerQueueRow): string {
+    return row.id;
+  }
 
   ngOnInit(): void {
     this.sub = this.careerService.getCareerData(this.scope).subscribe({
