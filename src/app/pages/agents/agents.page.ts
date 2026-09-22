@@ -34,4 +34,8 @@ export class AgentsPage implements OnInit {
   openChat(agent: Agent): void {
     this.router.navigate(['/chat', agent.id]);
   }
+
+  openBrain(): void {
+    this.router.navigate(['/tabs/agents/brain']);
+  }
 }

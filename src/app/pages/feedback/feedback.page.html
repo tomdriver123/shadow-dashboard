@@ -1,0 +1,84 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button *ngIf="author === 'tom'"></ion-menu-button>
+    </ion-buttons>
+    <ion-title>
+      Feedback
+      <div class="header-subtitle">{{ authorName }}</div>
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<div class="offline-banner" *ngIf="(online$ | async) === false">Feedback API offline, saving on this device</div>
+
+<ion-content class="feedback-content">
+  <div class="message-list">
+    <div class="empty-state" *ngIf="entries.length === 0">Nothing here yet. Tell Shadow what to fix.</div>
+
+    <div class="bubble" *ngFor="let e of entries; trackBy: trackById">
+      <markdown class="bubble__text" [data]="e.text"></markdown>
+
+      <div class="bubble__thumbs" *ngIf="thumbsFor(e).length">
+        <img
+          *ngFor="let url of thumbsFor(e)"
+          class="bubble__thumb"
+          [src]="url"
+          alt="Attached screenshot"
+          (click)="openImage(url)"
+        />
+      </div>
+
+      <div class="bubble__footer">
+        <span class="bubble__time">{{ e.created | date:'MMM d, h:mm a' }}</span>
+        <span class="status-chip" [ngClass]="statusClass(e.status)">{{ statusLabels[e.status] || e.status }}</span>
+        <a *ngIf="e.ticket" class="ticket-link" [href]="e.ticket" target="_blank" rel="noopener">
+          <ion-icon [name]="ticketIcon(e.ticket)"></ion-icon>
+        </a>
+        <span class="pending-chip" *ngIf="e.pending">Saved on this device</span>
+      </div>
+    </div>
+
+    <div #feedbackEnd></div>
+  </div>
+</ion-content>
+
+<ion-footer>
+  <ion-toolbar class="composer-toolbar">
+    <div class="staged-row" *ngIf="staged.length">
+      <div class="staged-thumb" *ngFor="let s of staged; let i = index">
+        <img [src]="s.url" alt="Pending attachment" />
+        <button type="button" class="staged-thumb__remove" (click)="removeStaged(i)">&times;</button>
+      </div>
+    </div>
+
+    <div class="composer-row">
+      <input
+        #fileInput
+        type="file"
+        accept="image/*"
+        multiple
+        class="hidden-file-input"
+        (change)="onFilesSelected($event)"
+      />
+      <ion-button fill="clear" class="attach-btn" (click)="onAttachClick()">
+        <ion-icon slot="icon-only" name="image-outline"></ion-icon>
+      </ion-button>
+
+      <textarea
+        #textareaEl
+        class="composer-textarea"
+        rows="1"
+        placeholder="What should Shadow fix?"
+        [(ngModel)]="inputText"
+        (input)="onInput()"
+        (keydown)="onKeyDown($event)"
+        (paste)="onPaste($event)"
+      ></textarea>
+
+      <ion-button fill="clear" class="send-btn" color="primary" [disabled]="!canSend" (click)="send()">
+        <ion-icon slot="icon-only" name="send"></ion-icon>
+      </ion-button>
+    </div>
+  </ion-toolbar>
+</ion-footer>

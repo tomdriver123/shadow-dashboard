@@ -14,8 +14,8 @@ const routes: Routes = [
       },
       {
         path: 'brain',
-        loadChildren: () =>
-          import('../pages/brain/brain.module').then(m => m.BrainPageModule),
+        redirectTo: 'agents/brain',
+        pathMatch: 'full',
       },
       {
         path: 'home',
@@ -28,7 +28,14 @@ const routes: Routes = [
           import('../pages/habits/habits.module').then(m => m.HabitsPageModule),
       },
       {
+        path: 'feedback',
+        data: { feedbackAuthor: 'tom' },
+        loadChildren: () =>
+          import('../pages/feedback/feedback.module').then(m => m.FeedbackPageModule),
+      },
+      {
         path: 'career',
+        data: { careerScope: 'tom' },
         loadChildren: () =>
           import('../pages/career/career.module').then(m => m.CareerPageModule),
       },

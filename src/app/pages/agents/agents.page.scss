@@ -176,3 +176,20 @@
   padding: 16px 20px 0;
   text-align: center;
 }
+
+// ── Knowledge row (Brain) ───────────────────────────────────────
+
+.knowledge-row {
+  display: flex;
+  justify-content: center;
+  padding: 8px 16px 28px;
+}
+
+.agent-circle__glyph {
+  font-size: 3.5rem;
+  color: #f59e0b;
+
+  @media (min-width: 768px) {
+    font-size: 4.5rem;
+  }
+}

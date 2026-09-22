@@ -46,6 +46,11 @@ export class HomeShellPage implements AfterViewInit, OnDestroy {
         this.router.navigate(['../', id], { relativeTo: this.route, replaceUrl: true });
       }
     });
+
+    // The content box just got shorter by the new header's toolbar; Swiper
+    // caches slide heights on init, so re-measure one frame after the
+    // header has been laid out. Harmless if the height was already correct.
+    requestAnimationFrame(() => this.swiperRef.nativeElement.swiper?.update());
   }
 
   jumpTo(idx: number) {

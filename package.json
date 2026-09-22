@@ -5,7 +5,9 @@
   "homepage": "https://ionicframework.com/",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "start": "node scripts/dev.js",
+    "start:web": "ng serve",
+    "start:api": "node server/feedback-api.js",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",

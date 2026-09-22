@@ -42,4 +42,15 @@
       <div class="agent-circle__role">{{ agent.role.split(' — ')[0] }}</div>
     </div>
   </div>
+
+  <div class="section-label">Knowledge</div>
+  <div class="knowledge-row">
+    <div class="agent-circle" (click)="openBrain()">
+      <div class="agent-circle__avatar" [style.border-color]="'#f59e0b'">
+        <ion-icon name="bulb-outline" class="agent-circle__glyph"></ion-icon>
+      </div>
+      <div class="agent-circle__name">Brain</div>
+      <div class="agent-circle__role">Insights and research</div>
+    </div>
+  </div>
 </ion-content>

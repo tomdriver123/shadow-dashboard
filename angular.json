@@ -78,7 +78,8 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "allowedHosts": [".your-tailnet.ts.net"]
+            "allowedHosts": [".your-tailnet.ts.net"],
+            "proxyConfig": "proxy.conf.json"
           },
           "configurations": {
             "production": {

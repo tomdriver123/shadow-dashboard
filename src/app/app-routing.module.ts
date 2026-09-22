@@ -11,6 +11,10 @@ const routes: Routes = [
     loadChildren: () => import('./pages/voice/voice.module').then(m => m.VoicePageModule),
   },
   {
+    path: 'sabrina',
+    loadChildren: () => import('./sabrina-tabs/sabrina-tabs.module').then(m => m.SabrinaTabsModule),
+  },
+  {
     path: '',
     redirectTo: 'tabs',
     pathMatch: 'full',
