@@ -4,6 +4,7 @@ import { Subscription } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
 import { CareerService } from '../../services/career.service';
 import { careerScopeFromRoute } from '../../services/career-scope';
+import { PortalService } from '../../services/portal.service';
 import {
   AccuracyPoint,
   CareerData,
@@ -70,6 +71,7 @@ export class CareerPage implements OnInit, OnDestroy {
   private ngZone = inject(NgZone);
 
   readonly scope = careerScopeFromRoute(inject(ActivatedRoute));
+  readonly portal = inject(PortalService);
 
   data: CareerData | null = null;
   loading = true;

@@ -2,7 +2,12 @@
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-menu-button *ngIf="scope.features.menuButton"></ion-menu-button>
-      <ion-button *ngIf="!scope.features.menuButton" routerLink="/tabs/home" routerDirection="root">
+      <ion-button
+        *ngIf="!scope.features.menuButton && portal.enteredFromTom"
+        routerLink="/tabs/home"
+        routerDirection="root"
+        (click)="portal.clear()"
+      >
         <ion-icon slot="start" name="arrow-back-outline"></ion-icon>Tom
       </ion-button>
     </ion-buttons>

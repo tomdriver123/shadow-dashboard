@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
+import { PortalService } from './services/portal.service';
 
 @Component({
   selector: 'app-root',
@@ -21,6 +22,12 @@ export class AppComponent {
   menuDisabled = false;
 
   private router = inject(Router);
+  private portal = inject(PortalService);
+
+  /** Entering Sabrina's portal from the side menu marks the tab like the Home button does. */
+  onMenuNav(url: string): void {
+    if (url.startsWith('/sabrina')) this.portal.markEnteredFromTom();
+  }
 
   constructor() {
     this.router.events

@@ -1,7 +1,8 @@
-import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { DASHBOARDS } from './dashboard-registry';
+import { PortalService } from '../../services/portal.service';
 
 @Component({
   selector: 'app-home-shell',
@@ -17,6 +18,12 @@ export class HomeShellPage implements AfterViewInit, OnDestroy {
   activeIndex = 0;
 
   private destroy$ = new Subject<void>();
+  private portal = inject(PortalService);
+
+  /** The header button marks the tab so Sabrina's portal shows a way back. */
+  enterSabrina(): void {
+    this.portal.markEnteredFromTom();
+  }
 
   constructor(private route: ActivatedRoute, private router: Router) {
     const id = this.route.snapshot.paramMap.get('dashboardId');
