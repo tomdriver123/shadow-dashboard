@@ -1,0 +1,21 @@
+<div class="system-dash">
+  <ion-card class="system-card">
+    <ion-card-header>
+      <ion-card-title>Automation health</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <div class="row" *ngFor="let row of rows" [class.row--stale]="row.stale">
+        <div class="row__top">
+          <span class="row__label">{{ row.label }}</span>
+          <ion-badge [color]="badgeColor(row)">{{ badgeText(row) }}</ion-badge>
+          <span class="row__relative">{{ row.relative }}</span>
+        </div>
+        <div class="row__detail" *ngIf="row.detail">{{ row.detail }}</div>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <p class="footer-note" *ngIf="apiAvailable === false">
+    Local API offline, showing the last committed run.
+  </p>
+</div>

@@ -3,6 +3,7 @@
     <ion-buttons slot="start"><ion-menu-button></ion-menu-button></ion-buttons>
     <ion-title>Shadow</ion-title>
     <ion-buttons slot="end">
+      <sh-refresh-button target="all" label="Refresh all"></sh-refresh-button>
       <ion-button routerLink="/sabrina" routerDirection="root" (click)="enterSabrina()">
         <ion-icon slot="start" name="person-circle-outline"></ion-icon>
         Sabrina
@@ -29,7 +30,7 @@
                       direction="vertical"
                       [attr.initial-slide]="initialSlide">
       <swiper-slide *ngFor="let d of dashboards">
-        <sh-dashboard-card [title]="d.title">
+        <sh-dashboard-card [title]="d.title" [refreshTarget]="d.refreshTarget">
           <ng-container *ngComponentOutlet="d.component"></ng-container>
         </sh-dashboard-card>
       </swiper-slide>

@@ -1,0 +1,153 @@
+:host {
+  display: block;
+  height: 100%;
+  width: 100%;
+
+  // Mirrors the tier palette in pages/habits/habits.page.scss so this tile
+  // reads consistently with the full Habits page. Component styles are
+  // scoped per component in Angular, so the custom properties are
+  // redeclared here rather than shared.
+  --tier-fail:  #ef4444;
+  --tier-miss:  #f97316;
+  --tier-mid:   #eab308;
+  --tier-close: #a3e635;
+  --tier-hit:   #22c55e;
+  --tier-empty: rgba(255, 255, 255, 0.12);
+}
+
+.habits-today-dash {
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 16px 24px;
+  max-width: 420px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.state-placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+
+  ion-spinner { --color: var(--ion-color-medium); }
+  ion-icon { font-size: 64px; color: var(--ion-color-medium); }
+  p { color: var(--ion-color-medium); margin: 0; }
+}
+
+.ring-wrap {
+  width: 160px;
+  height: 160px;
+  margin: 4px auto 0;
+}
+
+.ring {
+  width: 100%;
+  height: 100%;
+}
+
+.ring__track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 10;
+}
+
+.ring__progress {
+  fill: none;
+  stroke-width: 10;
+  transition: stroke-dashoffset 0.5s ease, stroke 0.3s ease;
+
+  &--hit   { stroke: var(--tier-hit); }
+  &--close { stroke: var(--tier-close); }
+  &--mid   { stroke: var(--tier-mid); }
+  &--miss  { stroke: var(--tier-miss); }
+  &--fail  { stroke: var(--tier-fail); }
+}
+
+.ring__value {
+  font-size: 22px;
+  font-weight: 700;
+  fill: var(--ion-text-color);
+}
+
+.ring__max {
+  font-size: 10px;
+  fill: var(--ion-color-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.empty-note {
+  font-size: 13px;
+  color: var(--ion-color-medium);
+  text-align: center;
+  margin: 8px 0 0;
+}
+
+.streak-line {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  text-align: center;
+  margin: 6px 0 16px;
+}
+
+.chip-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+
+  @media (min-width: 480px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  &--hit   { border-color: color-mix(in srgb, var(--tier-hit) 45%, transparent); }
+  &--close { border-color: color-mix(in srgb, var(--tier-close) 45%, transparent); }
+  &--mid   { border-color: color-mix(in srgb, var(--tier-mid) 40%, transparent); }
+  &--miss  { border-color: color-mix(in srgb, var(--tier-miss) 40%, transparent); }
+  &--fail  { border-color: color-mix(in srgb, var(--tier-fail) 35%, transparent); }
+  &--empty { border-color: var(--tier-empty); }
+}
+
+.chip__icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.chip__body {
+  min-width: 0;
+}
+
+.chip__name {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ion-color-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chip__value {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ion-text-color);
+  line-height: 1.3;
+}

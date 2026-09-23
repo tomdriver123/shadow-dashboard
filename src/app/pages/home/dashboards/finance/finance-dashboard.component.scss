@@ -142,3 +142,69 @@
   text-overflow: ellipsis;
   min-width: 0;
 }
+
+.card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.month-total {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--ion-text-color);
+  margin-bottom: 12px;
+}
+
+.category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.category-row__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.category-row__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.category-row__name {
+  flex: 1;
+  font-size: 0.85rem;
+  color: var(--ion-text-color);
+  text-transform: capitalize;
+}
+
+.category-row__amount {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ion-text-color);
+}
+
+.category-row__bar-track {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.category-row__bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.empty-state {
+  font-size: 0.85rem;
+  color: var(--ion-color-medium);
+  margin: 0;
+}

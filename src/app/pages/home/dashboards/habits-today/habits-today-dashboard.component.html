@@ -1,0 +1,45 @@
+<div class="habits-today-dash">
+  <div class="state-placeholder" *ngIf="loading">
+    <ion-spinner name="crescent"></ion-spinner>
+  </div>
+
+  <div class="state-placeholder" *ngIf="error && !loading">
+    <ion-icon name="alert-circle-outline" size="large"></ion-icon>
+    <p>Could not load habit data</p>
+  </div>
+
+  <ng-container *ngIf="!loading && !error">
+    <div class="ring-wrap">
+      <svg viewBox="0 0 120 120" class="ring">
+        <circle class="ring__track" cx="60" cy="60" r="52"></circle>
+        <circle
+          class="ring__progress"
+          [class]="'ring__progress--' + ringTier"
+          cx="60" cy="60" r="52"
+          [attr.stroke-dasharray]="ringCircumference"
+          [attr.stroke-dashoffset]="ringCircumference * (1 - pct / 100)"
+          transform="rotate(-90 60 60)"
+          stroke-linecap="round"
+        ></circle>
+        <text x="60" y="56" text-anchor="middle" class="ring__value">{{ points | number:'1.0-1' }}</text>
+        <text x="60" y="74" text-anchor="middle" class="ring__max">of {{ maxPoints }}</text>
+      </svg>
+    </div>
+
+    <p class="empty-note" *ngIf="!today">No habits logged yet today.</p>
+
+    <p class="streak-line" *ngIf="bestStreak">
+      Best streak {{ bestStreak.name }}, {{ bestStreak.current }} days
+    </p>
+
+    <div class="chip-grid">
+      <div class="chip" *ngFor="let c of chips" [class]="'chip--' + (c.tier ?? 'empty')">
+        <ion-icon [name]="c.icon" class="chip__icon" [style.color]="c.color"></ion-icon>
+        <div class="chip__body">
+          <div class="chip__name">{{ c.name }}</div>
+          <div class="chip__value">{{ c.displayValue ?? 'not logged yet' }}</div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>

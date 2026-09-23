@@ -5,12 +5,24 @@
 }
 
 .dash-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
   width: 100%;
   overflow: hidden;
   background: var(--ion-background-color);
+}
+
+.dash-card__refresh {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+
+  @media (min-width: 768px) {
+    top: 24px;
+  }
 }
 
 .dash-card__header {

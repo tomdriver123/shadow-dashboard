@@ -4,6 +4,9 @@ import { JobsDashboardComponent } from './dashboards/jobs/jobs-dashboard.compone
 import { RemindersDashboardComponent } from './dashboards/reminders/reminders-dashboard.component';
 import { EmailDashboardComponent } from './dashboards/email/email-dashboard.component';
 import { PipelineDashboardComponent } from './dashboards/pipeline/pipeline-dashboard.component';
+import { HabitsTodayDashboardComponent } from './dashboards/habits-today/habits-today-dashboard.component';
+import { SystemDashboardComponent } from './dashboards/system/system-dashboard.component';
+import { RefreshTarget } from '../../services/refresh.service';
 
 export interface DashboardDef {
   id: string;
@@ -12,6 +15,7 @@ export interface DashboardDef {
   component: Type<unknown>;
   hasRealData: boolean;
   issueRef?: string;
+  refreshTarget?: RefreshTarget;
 }
 
 export const DASHBOARDS: DashboardDef[] = [
@@ -21,6 +25,7 @@ export const DASHBOARDS: DashboardDef[] = [
     icon: 'git-branch-outline',
     component: PipelineDashboardComponent,
     hasRealData: true,
+    refreshTarget: 'career',
   },
   {
     id: 'finance',
@@ -28,6 +33,7 @@ export const DASHBOARDS: DashboardDef[] = [
     icon: 'wallet-outline',
     component: FinanceDashboardComponent,
     hasRealData: true,
+    refreshTarget: 'finance',
   },
   {
     id: 'jobs',
@@ -35,6 +41,23 @@ export const DASHBOARDS: DashboardDef[] = [
     icon: 'briefcase-outline',
     component: JobsDashboardComponent,
     hasRealData: true,
+    refreshTarget: 'jobs',
+  },
+  {
+    id: 'habits',
+    title: 'Habits Today',
+    icon: 'flame-outline',
+    component: HabitsTodayDashboardComponent,
+    hasRealData: true,
+    refreshTarget: 'habits',
+  },
+  {
+    id: 'system',
+    title: 'System',
+    icon: 'pulse-outline',
+    component: SystemDashboardComponent,
+    hasRealData: true,
+    refreshTarget: 'all',
   },
   {
     id: 'reminders',

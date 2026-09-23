@@ -2,6 +2,13 @@
   <header class="dash-card__header desktop-only">
     <h2>{{ title }}</h2>
   </header>
+  <sh-refresh-button
+    *ngIf="refreshTarget"
+    class="dash-card__refresh"
+    [target]="refreshTarget"
+    [generatedAt]="generatedAt"
+    [compact]="true"
+  ></sh-refresh-button>
   <div class="dash-card__body">
     <ng-content></ng-content>
   </div>
