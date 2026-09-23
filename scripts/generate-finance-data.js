@@ -77,6 +77,24 @@ function parseBalances(filePath) {
 
     const [institution, account, type, currentRaw, availableRaw] = cols;
 
+    // A failing institution writes a placeholder row, e.g.
+    // | Discover | (needs re-login) | error | — | — |
+    // Surface it instead of trying to parse the dashes as amounts.
+    const isError = type.trim().toLowerCase() === 'error';
+
+    if (isError) {
+      balances.push({
+        institution: institution.trim(),
+        displayName: institution.trim(),
+        type: 'error',
+        current: null,
+        available: null,
+        status: 'error',
+        statusNote: account.trim().replace(/^\(|\)$/g, ''),
+      });
+      continue;
+    }
+
     const current = parseAmount(currentRaw);
     const available = availableRaw === '—' || availableRaw === '-' ? null : parseAmount(availableRaw);
 
@@ -86,6 +104,8 @@ function parseBalances(filePath) {
       type: type.trim().toLowerCase(),
       current,
       available,
+      status: 'ok',
+      statusNote: null,
     });
   }
 
@@ -224,12 +244,17 @@ function main() {
   fs.writeFileSync(OUTPUT, JSON.stringify(output, null, 2));
 
   const totalBalance = balances.reduce((sum, b) => sum + (b.current || 0), 0);
+  const failingAccounts = balances.filter(b => b.status === 'error');
+
   console.log(`Generated finance.json: ${balances.length} accounts, ${allTransactions.length} transactions`);
   console.log(`  Last updated: ${lastUpdated || 'unknown'}`);
   console.log(`  Accounts: ${balances.map(b => b.displayName).join(', ')}`);
   console.log(`  Total balance: $${totalBalance.toFixed(2)}`);
   console.log(`  Transaction files: ${txFiles.length} months`);
   console.log(`  Categories: ${Object.entries(categoryCount).map(([k, v]) => `${k}(${v})`).join(', ')}`);
+  if (failingAccounts.length) {
+    console.log(`  Failing: ${failingAccounts.map(b => `${b.institution} (${b.statusNote})`).join(', ')}`);
+  }
   console.log(`  Output: ${OUTPUT}`);
 }
 

@@ -35,7 +35,8 @@ export class FinanceDashboardComponent implements OnInit {
     });
   }
 
-  formatCurrency(amount: number): string {
+  formatCurrency(amount: number | null): string {
+    if (amount === null) return '—';
     return '$' + amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   }
 

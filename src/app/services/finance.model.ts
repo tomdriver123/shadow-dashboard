@@ -1,9 +1,11 @@
 export interface AccountBalance {
   institution: string;
   displayName: string;
-  type: 'checking' | 'savings' | 'credit card';
-  current: number;
+  type: 'checking' | 'savings' | 'credit card' | 'error';
+  current: number | null;
   available: number | null;
+  status?: 'ok' | 'error';
+  statusNote?: string | null;
 }
 
 export interface Transaction {

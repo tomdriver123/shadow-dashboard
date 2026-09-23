@@ -17,13 +17,21 @@
       <ion-card-content>
         <div class="balance-list">
           <div class="balance-row" *ngFor="let b of balances"
-               [class.balance--low]="b.current < 100 && b.type !== 'credit card'">
+               [class.balance--low]="b.current !== null && b.current < 100 && b.type !== 'credit card'">
             <div class="balance-label">{{ b.displayName }}</div>
             <div class="balance-amount">
-              <span *ngIf="b.type !== 'credit card'">{{ formatCurrency(b.current) }}</span>
-              <span *ngIf="b.type === 'credit card'">
-                {{ formatCurrency(b.current) }} owed · {{ formatCurrency(b.available!) }} available
-              </span>
+              <ng-container *ngIf="b.status !== 'error'; else acctError">
+                <span *ngIf="b.type !== 'credit card'">{{ formatCurrency(b.current) }}</span>
+                <span *ngIf="b.type === 'credit card'">
+                  {{ formatCurrency(b.current) }} owed<span *ngIf="b.available !== null"> · {{ formatCurrency(b.available) }} available</span>
+                </span>
+              </ng-container>
+              <ng-template #acctError>
+                <ion-chip color="warning" class="acct-error">
+                  <ion-icon name="warning-outline"></ion-icon>
+                  <ion-label>{{ b.statusNote || 'sync failed' }}</ion-label>
+                </ion-chip>
+              </ng-template>
             </div>
           </div>
         </div>
