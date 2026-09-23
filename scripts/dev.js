@@ -4,8 +4,8 @@
 /**
  * dashboard/scripts/dev.js
  *
- * Runs the dashboard the way `npm start` means it: the feedback API
- * (server/feedback-api.js) and `ng serve` together, so "if localhost is
+ * Runs the dashboard the way `npm start` means it: the vault API
+ * (server/vault-api.js) and `ng serve` together, so "if localhost is
  * up, the API is up" holds. Zero dependencies on purpose, to avoid a
  * devDependency, lockfile churn and a registry hit just to run two
  * processes side by side.
@@ -66,7 +66,7 @@ function ngCommand() {
 }
 
 function startApi() {
-  apiChild = spawnLabeled('api', process.execPath, [path.join(ROOT, 'server', 'feedback-api.js')]);
+  apiChild = spawnLabeled('api', process.execPath, [path.join(ROOT, 'server', 'vault-api.js')]);
   apiChild.on('exit', (code, signal) => {
     apiChild = null;
     if (shuttingDown) return;

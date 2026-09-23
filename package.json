@@ -7,11 +7,13 @@
     "ng": "ng",
     "start": "node scripts/dev.js",
     "start:web": "ng serve",
-    "start:api": "node server/feedback-api.js",
+    "start:api": "node server/vault-api.js",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "lint": "ng lint"
+    "lint": "ng lint",
+    "refresh": "node scripts/refresh.js",
+    "refresh:all": "node scripts/refresh.js all --sync"
   },
   "private": true,
   "dependencies": {

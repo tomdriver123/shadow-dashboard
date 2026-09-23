@@ -2,13 +2,15 @@
 'use strict';
 
 /**
- * dashboard/server/feedback-api.js
+ * dashboard/server/vault-api.js
  *
- * Tiny zero dependency HTTP API behind the dashboard Feedback page. It lets
- * the page write feedback entries (text plus optional screenshots) as
- * markdown files under vault/feedback/<author>/, and read them back. No
- * agent, no chat, no git; one way writes from the page, read later by a
- * daily automation that turns PENDING entries into fixes or tickets.
+ * Tiny zero dependency HTTP API behind the dashboard. It lets the Feedback
+ * page write feedback entries (text plus optional screenshots) as markdown
+ * files under vault/feedback/<author>/, and read them back. No agent, no
+ * chat, no git; one way writes from the page, read later by a daily
+ * automation that turns PENDING entries into fixes or tickets. It also owns
+ * quiz attempt logging, Sabrina's job queue verdicts, and the routes that
+ * trigger and report on the dashboard's data refresh pipeline.
  *
  * Storage contract: vault/feedback/README.md
  *
@@ -22,6 +24,11 @@
  * /api/feedback prefix already matches it, no proxy change needed). The
  * ledger path is hardcoded to her queue.md; there is no author field on
  * this route, that hardcoding is the security model.
+ *
+ * Refresh routes (GET /api/refresh/status, POST /api/refresh/:target) shell
+ * out to dashboard/scripts/refresh.js, the single orchestrator that also
+ * backs launchd and the CLI, and report its per target result so the
+ * dashboard can show automation health even when a run fails.
  *
  * Started by `npm start` (dashboard/scripts/dev.js) alongside `ng serve`
  * and reached same origin through Angular's dev proxy (proxy.conf.json).
@@ -38,7 +45,7 @@ const { promisify } = require('util');
 const execFileAsync = promisify(execFile);
 
 const HOST = '127.0.0.1';
-const PORT = Number(process.env.FEEDBACK_API_PORT) || 4201;
+const PORT = Number(process.env.VAULT_API_PORT || process.env.FEEDBACK_API_PORT) || 4201;
 const ROOT = path.resolve(__dirname, '..', '..', 'vault', 'feedback');
 const AUTHORS = ['tom', 'sabrina'];
 
@@ -74,6 +81,28 @@ const LETTER_RE = /^[A-F]$/;
 const QUIZ_RESULTS = ['pass', 'miss'];
 const ANSWERED_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/;
 const MAX_QUIZ_BODY_BYTES = 4096;
+
+// ── dashboard data refresh ────────────────────────────────────────────────
+// Shells out to dashboard/scripts/refresh.js, the one orchestrator that also
+// backs launchd and the CLI. This API only starts a run and reports on it;
+// the "how to refresh X" logic lives entirely in that script.
+
+const DATA_DIR = path.resolve(__dirname, '..', 'src', 'assets', 'data');
+const REFRESH_SCRIPT = path.resolve(__dirname, '..', 'scripts', 'refresh.js');
+const REFRESH_STATE = path.join(DATA_DIR, 'refresh.json');
+const REFRESH_TARGETS = ['finance', 'habits', 'career', 'jobs', 'brain', 'agents', 'all'];
+const SYNC_BY_DEFAULT = new Set(['finance', 'habits', 'all']);
+const DATA_FILES = {
+  finance: 'finance.json',
+  habits: 'habits.json',
+  career: 'career.json',
+  jobs: 'jobs.json',
+  brain: 'brain.json',
+  agents: 'agents.json',
+};
+const REFRESH_TIMEOUT_MS = 180000;
+const PERSONS = ['tom', 'sabrina'];
+const running = new Set();
 
 const IMAGE_TYPES = {
   'image/png': 'png',
@@ -211,7 +240,7 @@ function listEntries(author) {
       if (!entry) throw new Error('missing or malformed frontmatter block');
       rows.push({ file, entry });
     } catch (err) {
-      process.stderr.write(`[feedback-api] skipping unparsable entry ${file}: ${err.message}\n`);
+      process.stderr.write(`[vault-api] skipping unparsable entry ${file}: ${err.message}\n`);
     }
   }
 
@@ -504,7 +533,7 @@ async function handleJobsVerdict(req, res) {
   } catch (err) {
     // The ledger write already succeeded and is truth; rolling the UI
     // response back to a failure would lie. The next regen heals the JSON.
-    process.stderr.write(`[feedback-api] sabrina career regen failed: ${err.stderr || err.message}\n`);
+    process.stderr.write(`[vault-api] sabrina career regen failed: ${err.stderr || err.message}\n`);
     sendJson(res, 200, { ok: true, id, verdict, warning: 'ledger updated, regenerate failed' });
     return;
   }
@@ -578,7 +607,7 @@ function listOfflineEntries() {
       if (!entry) throw new Error('missing or malformed frontmatter block');
       entries.push(entry);
     } catch (err) {
-      process.stderr.write(`[feedback-api] skipping unparsable offline entry ${file}: ${err.message}\n`);
+      process.stderr.write(`[vault-api] skipping unparsable offline entry ${file}: ${err.message}\n`);
     }
   }
 
@@ -737,6 +766,116 @@ function serveAttachment(res, pathname) {
   fs.createReadStream(resolved).pipe(res);
 }
 
+// ── GET /api/refresh/status, POST /api/refresh/:target ───────────────────
+// Thin wrapper around dashboard/scripts/refresh.js. This process never
+// decides how to refresh anything; it only starts the orchestrator as a
+// child process, waits for its one JSON object on stdout, and relays it.
+
+function readRefreshState() {
+  try {
+    return JSON.parse(fs.readFileSync(REFRESH_STATE, 'utf8'));
+  } catch {
+    return { generatedAt: null, targets: {} };
+  }
+}
+
+function readGeneratedAt(file) {
+  let stat;
+  try {
+    stat = fs.statSync(file);
+  } catch {
+    return { generatedAt: null, mtime: null };
+  }
+
+  let generatedAt = null;
+  try {
+    const parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
+    // agents.json is a bare array with no generatedAt field; every other
+    // generator writes an object. Treat an array as having no timestamp of
+    // its own and fall back to the file's mtime.
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      generatedAt = parsed.generatedAt ?? null;
+    }
+  } catch {
+    generatedAt = null;
+  }
+
+  return { generatedAt, mtime: stat.mtime.toISOString() };
+}
+
+function handleRefreshStatus(res) {
+  const data = {};
+  for (const target of Object.keys(DATA_FILES)) {
+    data[target] = readGeneratedAt(path.join(DATA_DIR, DATA_FILES[target]));
+  }
+  sendJson(res, 200, { ok: true, state: readRefreshState(), running: [...running], data });
+}
+
+async function handleRefreshRun(res, target, urlObj) {
+  if (!REFRESH_TARGETS.includes(target)) {
+    sendJson(res, 400, { error: `target must be one of ${REFRESH_TARGETS.join(', ')}` });
+    return;
+  }
+  if (running.has(target) || running.has('all') || (target === 'all' && running.size > 0)) {
+    sendJson(res, 409, {
+      ok: false,
+      target,
+      error: 'a refresh is already running',
+      running: [...running],
+    });
+    return;
+  }
+
+  const syncParam = urlObj.searchParams.get('sync');
+  const sync = syncParam === null
+    ? SYNC_BY_DEFAULT.has(target)
+    : (syncParam === '1' || syncParam === 'true');
+
+  const person = urlObj.searchParams.get('person');
+  if (person !== null && !PERSONS.includes(person)) {
+    sendJson(res, 400, { error: `person must be one of ${PERSONS.join(', ')}` });
+    return;
+  }
+
+  running.add(target);
+  try {
+    const args = [
+      REFRESH_SCRIPT,
+      target,
+      '--json',
+      sync ? '--sync' : '--no-sync',
+      ...(person ? ['--person', person] : []),
+    ];
+    const { stdout } = await execFileAsync(process.execPath, args, {
+      timeout: REFRESH_TIMEOUT_MS,
+      maxBuffer: 8 * 1024 * 1024,
+    });
+    sendJson(res, 200, JSON.parse(stdout));
+  } catch (err) {
+    // A failed target still exits non zero, but refresh.js prints its one
+    // JSON object first. That is what the page needs (the step tails), so
+    // relay it with a 200 rather than collapsing it to a bare 500.
+    let relayed = false;
+    if (err.stdout) {
+      try {
+        sendJson(res, 200, JSON.parse(err.stdout));
+        relayed = true;
+      } catch {
+        // stdout was not JSON; fall through to the error response below.
+      }
+    }
+    if (!relayed) {
+      const error = err.killed
+        ? `refresh timed out after ${REFRESH_TIMEOUT_MS}ms`
+        : (err.stderr || err.message);
+      process.stderr.write(`[vault-api] refresh ${target} failed: ${error}\n`);
+      sendJson(res, 500, { ok: false, target, error });
+    }
+  } finally {
+    running.delete(target);
+  }
+}
+
 // ── routing ────────────────────────────────────────────────────────────────
 
 async function handleRequest(req, res, method, pathname, urlObj) {
@@ -745,14 +884,21 @@ async function handleRequest(req, res, method, pathname, urlObj) {
     return;
   }
 
-  if (method === 'GET' && pathname === '/api/feedback/health') {
+  if (method === 'GET' && (pathname === '/api/health' || pathname === '/api/feedback/health')) {
     sendJson(res, 200, {
       ok: true,
       root: ROOT,
       authors: AUTHORS,
       queue: SABRINA_QUEUE,
       quizOfflineDir: OFFLINE_DIR,
+      refreshTargets: REFRESH_TARGETS,
+      running: [...running],
     });
+    return;
+  }
+
+  if (method === 'GET' && pathname === '/api/refresh/status') {
+    handleRefreshStatus(res);
     return;
   }
 
@@ -791,6 +937,12 @@ async function handleRequest(req, res, method, pathname, urlObj) {
     return;
   }
 
+  if (method === 'POST' && pathname.startsWith('/api/refresh/')) {
+    const target = decodeURIComponent(pathname.slice('/api/refresh/'.length));
+    await handleRefreshRun(res, target, urlObj);
+    return;
+  }
+
   sendJson(res, 404, { error: 'not found' });
 }
 
@@ -824,7 +976,7 @@ const server = http.createServer((req, res) => {
   };
 
   handleRequest(req, res, method, pathname, urlObj).catch((err) => {
-    process.stderr.write(`[feedback-api] unhandled error: ${err.stack || err.message}\n`);
+    process.stderr.write(`[vault-api] unhandled error: ${err.stack || err.message}\n`);
     if (!res.headersSent) {
       sendJson(res, 500, { error: 'internal server error' });
     } else {
@@ -835,12 +987,12 @@ const server = http.createServer((req, res) => {
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    console.log(`feedback-api already running on ${PORT}`);
+    console.log(`vault-api already running on ${PORT}`);
     process.exit(0);
   }
   throw err;
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`feedback-api listening on http://${HOST}:${PORT} (root: ${ROOT})`);
+  console.log(`vault-api listening on http://${HOST}:${PORT} (root: ${ROOT})`);
 });
