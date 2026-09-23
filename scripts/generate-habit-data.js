@@ -314,7 +314,10 @@ function main() {
 
   const streaks = parseStreaks(path.join(HABITS_DIR, 'streaks.md'));
 
-  const today = new Date().toISOString().split('T')[0];
+  // Local calendar date, not toISOString: UTC rolls over at 8 PM Eastern, which
+  // made "today" point at tomorrow every evening and emptied the tile.
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
   // For past days: null status/value → 'miss' + 'fail' tier (no credit for not logging)
   // Today stays null — data may still be syncing (card shows `—`)
