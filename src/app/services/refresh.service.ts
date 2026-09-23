@@ -53,6 +53,8 @@ export interface RefreshRunResult {
   targets: Record<string, RefreshTargetState>;
 }
 
+const STATUS_MIN_INTERVAL_MS = 5000;
+
 export interface RefreshOptions {
   person?: CareerPerson;
 }
@@ -78,6 +80,8 @@ export class RefreshService {
   private statusSubject = new BehaviorSubject<RefreshStatus | null>(null);
   private runningSubject = new BehaviorSubject<ReadonlySet<RefreshTarget>>(new Set());
   private availableSubject = new BehaviorSubject<boolean | null>(null);
+  private statusInFlight = false;
+  private statusLoadedAt = 0;
 
   readonly status$: Observable<RefreshStatus | null> = this.statusSubject.asObservable();
   readonly running$: Observable<ReadonlySet<RefreshTarget>> = this.runningSubject.asObservable();
@@ -90,7 +94,14 @@ export class RefreshService {
    * returns. A failure on the fallback too leaves the last known status in
    * place rather than clearing it.
    */
-  loadStatus(): void {
+  loadStatus(force = false): void {
+    // Every refresh button calls this on init, so a page with six buttons
+    // would fire six identical probes. Coalesce them: skip while one is in
+    // flight and within a few seconds of the last completed one, unless a
+    // caller (a finished run) asks for a fresh read.
+    const now = Date.now();
+    if (!force && (this.statusInFlight || now - this.statusLoadedAt < STATUS_MIN_INTERVAL_MS)) return;
+    this.statusInFlight = true;
     this.http.get<RefreshStatus>('/api/refresh/status').pipe(
       timeout(4000),
       tap(() => this.setAvailable(true)),
@@ -102,6 +113,8 @@ export class RefreshService {
         );
       }),
     ).subscribe((status) => {
+      this.statusInFlight = false;
+      this.statusLoadedAt = Date.now();
       if (status) this.statusSubject.next(status);
     });
   }
@@ -133,7 +146,7 @@ export class RefreshService {
       tap(() => {
         this.setAvailable(true);
         this.fanOut(target, person);
-        this.loadStatus();
+        this.loadStatus(true);
       }),
       catchError((err) => {
         if (err instanceof TimeoutError || (err instanceof HttpErrorResponse && err.status === 0)) {
