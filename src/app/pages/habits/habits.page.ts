@@ -30,6 +30,10 @@ export class HabitsPage implements OnInit, OnDestroy {
   selectedDate: string | null = null; // null = today
 
   private chart: Chart | null = null;
+  // Canvas reference captured by the ViewChild setter below, kept around so
+  // a data refresh can rebuild the chart directly instead of waiting on the
+  // setter to fire again.
+  private pointsCanvas: ElementRef<HTMLCanvasElement> | null = null;
 
   constructor(private habitService: HabitService, private ngZone: NgZone) {}
 
@@ -40,6 +44,17 @@ export class HabitsPage implements OnInit, OnDestroy {
         this.loading = false;
         if (d.config?.length) {
           this.selectedHabitId = d.config[0].id;
+        }
+        // A refresh re-emits on the same page instance; the canvas already
+        // exists, so the ViewChild setter will not fire again on its own.
+        // Destroy the old series and rebuild against the new data.
+        if (this.chart) {
+          this.chart.destroy();
+          this.chart = null;
+          if (this.pointsCanvas) {
+            const canvas = this.pointsCanvas;
+            this.ngZone.runOutsideAngular(() => this.buildPointsChart(canvas.nativeElement));
+          }
         }
       },
       error: () => {
@@ -55,7 +70,9 @@ export class HabitsPage implements OnInit, OnDestroy {
 
   // ── Chart.js ViewChild (setter pattern for *ngIf) ───────────────────────
   @ViewChild('pointsChart') set pointsChartRef(ref: ElementRef<HTMLCanvasElement> | undefined) {
-    if (ref && !this.chart && this.data) {
+    if (!ref) return;
+    this.pointsCanvas = ref;
+    if (!this.chart && this.data) {
       this.ngZone.runOutsideAngular(() => this.buildPointsChart(ref.nativeElement));
     }
   }
@@ -81,6 +98,10 @@ export class HabitsPage implements OnInit, OnDestroy {
   get generatedAt(): string {
     if (!this.data?.generatedAt) return '';
     return new Date(this.data.generatedAt).toLocaleString();
+  }
+
+  get generatedAtIso(): string | null {
+    return this.data?.generatedAt ?? null;
   }
 
   get totalMaxPoints(): number {

@@ -1,0 +1,34 @@
+:host {
+  display: inline-flex;
+}
+
+.refresh-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.refresh-chip__time {
+  font-size: 11px;
+  color: var(--ion-color-medium);
+  white-space: nowrap;
+}
+
+.refresh-chip--busy ion-button {
+  opacity: 0.85;
+}
+
+ion-button {
+  --padding-start: 4px;
+  --padding-end: 4px;
+  margin: 0;
+}
+
+ion-spinner {
+  width: 16px;
+  height: 16px;
+}
+
+ion-icon {
+  font-size: 16px;
+}

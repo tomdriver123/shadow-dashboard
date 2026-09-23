@@ -1,0 +1,15 @@
+<div class="refresh-chip" [class.refresh-chip--busy]="running">
+  <span class="refresh-chip__time" *ngIf="!compact && relative">{{ relative }}</span>
+  <ion-button
+    fill="clear"
+    size="small"
+    [disabled]="running || available === false"
+    [attr.aria-label]="tooltip"
+    [title]="tooltip"
+    (click)="onClick()"
+  >
+    <ion-spinner *ngIf="running" name="crescent" [attr.slot]="label ? 'start' : 'icon-only'"></ion-spinner>
+    <ion-icon *ngIf="!running" name="refresh-outline" [attr.slot]="label ? 'start' : 'icon-only'"></ion-icon>
+    <ng-container *ngIf="label">{{ label }}</ng-container>
+  </ion-button>
+</div>

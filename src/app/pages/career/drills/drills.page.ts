@@ -71,12 +71,24 @@ export class DrillsPage implements OnInit, OnDestroy {
 
   private sub: Subscription | null = null;
   private chart: Chart | null = null;
+  // Canvas captured by the ViewChild setter so a data refresh can rebuild the
+  // chart in place; the setter itself does not fire again while the canvas
+  // stays mounted.
+  private accuracyCanvas: ElementRef<HTMLCanvasElement> | null = null;
 
   ngOnInit(): void {
     this.sub = this.careerService.getCareerData(this.scope).subscribe({
       next: (d) => {
         this.data = d;
         this.loading = false;
+        // A refresh re-emits on the same page instance. Rebuild the chart
+        // from the stored canvas, since the ViewChild setter will not rerun.
+        if (this.chart && this.accuracyCanvas) {
+          this.chart.destroy();
+          this.chart = null;
+          const canvas = this.accuracyCanvas;
+          this.ngZone.runOutsideAngular(() => this.buildChart(canvas.nativeElement));
+        }
       },
       error: () => {
         this.loading = false;
@@ -94,6 +106,7 @@ export class DrillsPage implements OnInit, OnDestroy {
   // habits.page.ts / career.page.ts: build lazily outside Angular, destroy
   // on toggle away so the canvas never goes stale. ────────────────────────
   @ViewChild('accuracyChart') set accuracyChartRef(ref: ElementRef<HTMLCanvasElement> | undefined) {
+    this.accuracyCanvas = ref ?? null;
     if (ref && !this.chart && this.data) {
       this.ngZone.runOutsideAngular(() => this.buildChart(ref.nativeElement));
     }

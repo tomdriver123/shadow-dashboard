@@ -53,6 +53,10 @@ export class BrainPage implements OnInit {
     return new Date(this.data.generatedAt).toLocaleString();
   }
 
+  get generatedAtIso(): string | null {
+    return this.data?.generatedAt ?? null;
+  }
+
   get queue(): QueueData | null {
     return this.data?.queue ?? null;
   }

@@ -13,7 +13,7 @@
     </ion-buttons>
     <ion-title>Career</ion-title>
     <ion-buttons slot="end">
-      <ion-note *ngIf="generatedAt">Synced {{ generatedAt }}</ion-note>
+      <sh-refresh-button target="career" [person]="scope.person" [generatedAt]="generatedAtIso"></sh-refresh-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>

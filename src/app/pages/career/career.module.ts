@@ -17,9 +17,10 @@ import { KbDetailPage } from './kb/kb-detail.page';
 import { KbQuizCardComponent } from './kb/kb-quiz-card/kb-quiz-card.component';
 import { CommsPage } from './comms/comms.page';
 import { PlaybookPage } from './playbook/playbook.page';
+import { SharedModule } from '../../shared/shared.module';
 
 @NgModule({
-  imports: [CommonModule, FormsModule, IonicModule, MarkdownModule, CareerRoutingModule],
+  imports: [CommonModule, FormsModule, IonicModule, MarkdownModule, CareerRoutingModule, SharedModule],
   declarations: [
     CareerPage,
     ApplicationsPage,

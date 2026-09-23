@@ -85,6 +85,10 @@ export class CareerPage implements OnInit, OnDestroy {
 
   private sub: Subscription | null = null;
   private weeklyChart: Chart | null = null;
+  // Canvas captured by the ViewChild setter so a data refresh can rebuild the
+  // chart in place; the setter itself does not fire again while the canvas
+  // stays mounted.
+  private weeklyCanvas: ElementRef<HTMLCanvasElement> | null = null;
 
   // ── Queue preview (scope.features.queuePreview) ──────────────────────
   // Rows she has not answered yet. A vote flips row.status through the
@@ -122,6 +126,14 @@ export class CareerPage implements OnInit, OnDestroy {
       next: (d) => {
         this.data = d;
         this.loading = false;
+        // A refresh re-emits on the same page instance. Rebuild the chart
+        // from the stored canvas, since the ViewChild setter will not rerun.
+        if (this.weeklyChart && this.weeklyCanvas) {
+          this.weeklyChart.destroy();
+          this.weeklyChart = null;
+          const canvas = this.weeklyCanvas;
+          this.ngZone.runOutsideAngular(() => this.buildWeeklyChart(canvas.nativeElement));
+        }
       },
       error: () => {
         this.loading = false;
@@ -138,6 +150,7 @@ export class CareerPage implements OnInit, OnDestroy {
   // ── Chart.js ViewChild (setter pattern for *ngIf), same shape as
   // habits.page.ts: build lazily outside Angular, destroy on toggle away. ──
   @ViewChild('weeklyChart') set weeklyChartRef(ref: ElementRef<HTMLCanvasElement> | undefined) {
+    this.weeklyCanvas = ref ?? null;
     if (ref && !this.weeklyChart && this.data) {
       this.ngZone.runOutsideAngular(() => this.buildWeeklyChart(ref.nativeElement));
     }
@@ -163,6 +176,10 @@ export class CareerPage implements OnInit, OnDestroy {
   get generatedAt(): string {
     if (!this.data?.generatedAt) return '';
     return new Date(this.data.generatedAt).toLocaleString();
+  }
+
+  get generatedAtIso(): string | null {
+    return this.data?.generatedAt ?? null;
   }
 
   // ── Needs you ─────────────────────────────────────────────────────────
