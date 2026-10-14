@@ -81,6 +81,13 @@ export class QuizCardService {
     return this.answered[id] ?? null;
   }
 
+  /** Locally answered entries that carry an encounter species, optionally only one town's. */
+  answeredEntries(townId?: string): QuizAnswer[] {
+    return Object.keys(this.answered)
+      .map((k) => this.answered[k])
+      .filter((a) => !!a.species && (townId === undefined || a.town === townId));
+  }
+
   record(q: KbQuestion, pick: string, encounter?: EncounterContext): QuizAnswer {
     const existing = this.answered[q.id];
     if (existing) return existing;

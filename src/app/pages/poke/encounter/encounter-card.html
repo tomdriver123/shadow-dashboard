@@ -1,0 +1,107 @@
+@switch (town().mode) {
+  @case ('external') {
+    <section class="card">
+      @if (town().external) {
+        <p>
+          {{ town().external }}
+          @if (externalXp() !== null) {
+            {{ externalXp() }} XP banked on this track.
+          }
+        </p>
+      }
+    </section>
+  }
+  @case ('reflection') {
+    @if (townGate(); as gate) {
+      <section class="card">
+        @if (gate.open) {
+          <h3 class="title">Pokemon Tower</h3>
+        }
+        <p>{{ gate.reason }}</p>
+      </section>
+    }
+  }
+  @default {
+    <section class="card">
+      @if (kbLoading()) {
+        <p role="status">Looking in the tall grass...</p>
+      } @else if (current(); as cur) {
+        <div class="wild">
+          @if (cur.species.sprite) {
+            <img [src]="cur.species.sprite" [alt]="cur.species.display" width="96" height="96" />
+          }
+          <div>
+            <p class="appeared">A wild {{ cur.species.display }} appeared!</p>
+            @if (town().mode === 'scout') {
+              <p class="badge">Super effective, double XP</p>
+              @if (scoutReason()) {
+                <p class="scout-reason">{{ scoutReason() }}</p>
+              }
+            }
+          </div>
+        </div>
+
+        <p class="meta">{{ cur.question.topic }} · {{ cur.question.level }}</p>
+        <div class="body"><markdown [data]="cur.question.stem"></markdown></div>
+
+        @if (!answer()) {
+          <div class="options">
+            @for (o of cur.question.options; track o.letter) {
+              <button type="button" class="option option--tappable" (click)="pick(o.letter)">
+                <span class="option__letter">{{ o.letter }}</span>
+                <span class="option__text">{{ o.text }}</span>
+              </button>
+            }
+          </div>
+        } @else {
+          <div class="options">
+            @for (o of cur.question.options; track o.letter) {
+              <div
+                class="option"
+                [class.option--correct]="isCorrect(o.letter)"
+                [class.option--picked]="isPicked(o.letter) && !isCorrect(o.letter)"
+              >
+                <span class="option__letter">{{ o.letter }}</span>
+                <span class="option__text">{{ o.text }}</span>
+              </div>
+            }
+          </div>
+
+          <p class="verdict" role="status" [class.verdict--pass]="outcome() !== 'fled'" [class.verdict--miss]="outcome() === 'fled'">
+            <ion-icon [name]="outcome() === 'fled' ? 'close-circle-outline' : 'checkmark-circle-outline'"></ion-icon>
+            @switch (outcome()) {
+              @case ('caught') {
+                <span>Gotcha! {{ cur.species.display }} was caught!</span>
+              }
+              @case ('xp') {
+                <span>{{ cur.species.display }} gave you XP</span>
+              }
+              @default {
+                <span>{{ cur.species.display }} fled</span>
+              }
+            }
+          </p>
+
+          <div class="body"><markdown [data]="cur.question.why"></markdown></div>
+          <button type="button" class="next" (click)="next()">Next</button>
+        }
+      } @else if (isQuestionMode() && candidates().length === 0) {
+        <p>
+          No {{ town().type ?? 'wild' }} Pokemon are out right now. Run /quiz to refill the
+          {{ bankList() }} bank.
+        </p>
+      }
+
+      @for (target of ballTargets(); track target.species) {
+        <div class="ball">
+          @if (isThrown(target.species)) {
+            <p class="verdict verdict--pass" role="status">Gotcha! {{ target.display }} was caught!</p>
+          } @else {
+            <p>{{ target.display }} is waiting in the cave.</p>
+            <button type="button" class="next" (click)="throwBall(target)">Throw a ball</button>
+          }
+        </div>
+      }
+    </section>
+  }
+}

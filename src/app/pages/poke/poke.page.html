@@ -58,6 +58,9 @@
               </svg>
             </button>
           }
+          @if (encounterTown(); as town) {
+            <app-encounter-card data-slot="encounter" [town]="town" [game]="game()" />
+          }
           @if (isMobile()) {
             <button
               data-slot="end"

@@ -17,6 +17,7 @@ import { map } from 'rxjs';
 import { GameService } from './data/game-service';
 import { TownsService } from './data/towns-service';
 import { TownMap } from './map/town-map';
+import { EncounterCard } from './encounter/encounter-card';
 import { TownPanel } from './panel/town-panel';
 import { POKE_PATH, TOWN_PARAM } from './poke-paths';
 
@@ -25,7 +26,7 @@ const MOBILE_QUERY = '(max-width: 767.98px)';
 
 @Component({
   selector: 'app-poke-page',
-  imports: [IonicModule, RouterLink, TownPanel, TownMap],
+  imports: [IonicModule, RouterLink, TownPanel, TownMap, EncounterCard],
   templateUrl: './poke.page.html',
   styleUrl: './poke.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -46,6 +47,12 @@ export class PokePage {
   protected readonly pokePath = POKE_PATH;
   protected readonly towns = this.townsService.towns;
   protected readonly game = this.gameService.game;
+  /** The selected town when it hosts encounters; home shows the trainer card instead. */
+  protected readonly encounterTown = computed(() => {
+    const id = this.id();
+    const town = id === undefined ? undefined : this.townsService.towns().find((t) => t.id === id);
+    return town && town.mode !== 'home' ? town : undefined;
+  });
   protected readonly routes = computed(() => this.gameService.game()?.routes ?? []);
   protected readonly loading = this.townsService.loading;
   protected readonly error = this.townsService.error;

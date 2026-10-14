@@ -1,0 +1,180 @@
+:host {
+  display: block;
+  color: var(--color-primary-dark, #082301);
+  --color: var(--color-primary-dark, #082301);
+}
+
+p {
+  margin: 0;
+}
+
+.card {
+  padding: var(--space-3, 16px);
+  border: 1px solid var(--color-border, #d2d8cd);
+  border-radius: var(--radius, 8px);
+  background: var(--color-surface, #fff);
+}
+
+.title {
+  margin: 0 0 var(--space-1, 4px);
+  color: var(--color-secondary, #41220c);
+  font-size: 1.1rem;
+}
+
+.wild {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 16px);
+}
+
+.wild img {
+  flex: none;
+  width: 96px;
+  height: 96px;
+  image-rendering: pixelated;
+}
+
+.appeared {
+  font-weight: 700;
+}
+
+.badge {
+  display: inline-block;
+  margin-top: var(--space-1, 4px);
+  padding: 0 var(--space-2, 8px);
+  border-radius: 999px;
+  background: #b45309;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.scout-reason {
+  margin-top: var(--space-1, 4px);
+  color: var(--color-secondary-light, #5b3011);
+  font-size: 0.85rem;
+}
+
+.meta {
+  margin: var(--space-2, 8px) 0;
+  color: var(--color-secondary-light, #5b3011);
+  font-size: 0.85rem;
+  text-transform: capitalize;
+}
+
+.body {
+  overflow-wrap: anywhere;
+}
+
+.body ::ng-deep p {
+  margin: 0 0 var(--space-2, 8px);
+}
+
+.body ::ng-deep pre {
+  overflow-x: auto;
+  padding: var(--space-2, 8px);
+  border-radius: var(--radius, 8px);
+  background: var(--color-primary-tint, #eef1ec);
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: var(--space-2, 8px);
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px;
+  border: 1px solid var(--color-border, #d2d8cd);
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.option--tappable {
+  width: 100%;
+  cursor: pointer;
+}
+
+.option--tappable:hover {
+  background: var(--color-surface-tint, #eef1fb);
+  border-color: var(--color-tertiary, #2c4cd1);
+}
+
+.option--tappable:focus-visible,
+.next:focus-visible {
+  outline: var(--focus-ring, 3px solid #2c4cd1);
+  outline-offset: 2px;
+}
+
+.option__letter {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-primary-tint, #eef1ec);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.option__text {
+  overflow-wrap: anywhere;
+}
+
+.option--correct {
+  border-color: #1b6e2b;
+  background: color-mix(in srgb, #2a9d3f 10%, white);
+}
+
+.option--correct .option__letter {
+  background: #1b6e2b;
+  color: #fff;
+}
+
+.option--picked {
+  border-color: #a30f1a;
+  background: color-mix(in srgb, #c1121f 8%, white);
+}
+
+.verdict {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: var(--space-3, 16px) 0 var(--space-2, 8px);
+  font-weight: 700;
+}
+
+.verdict--pass {
+  color: #1b6e2b;
+}
+
+.verdict--miss {
+  color: #a30f1a;
+}
+
+.next {
+  margin-top: var(--space-2, 8px);
+  min-height: 44px;
+  padding: 0 var(--space-3, 16px);
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-tertiary, #2c4cd1);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ball {
+  margin-top: var(--space-3, 16px);
+}
