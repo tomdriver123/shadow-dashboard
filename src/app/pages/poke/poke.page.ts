@@ -14,6 +14,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 import { map } from 'rxjs';
+import { GameService } from './data/game-service';
 import { TownsService } from './data/towns-service';
 import { TownMap } from './map/town-map';
 import { TownPanel } from './panel/town-panel';
@@ -34,6 +35,7 @@ export class PokePage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly townsService = inject(TownsService);
+  private readonly gameService = inject(GameService);
 
   /** The selected town from `?town=`; undefined in list mode. */
   protected readonly id = toSignal(
@@ -43,6 +45,8 @@ export class PokePage {
 
   protected readonly pokePath = POKE_PATH;
   protected readonly towns = this.townsService.towns;
+  protected readonly game = this.gameService.game;
+  protected readonly routes = computed(() => this.gameService.game()?.routes ?? []);
   protected readonly loading = this.townsService.loading;
   protected readonly error = this.townsService.error;
 

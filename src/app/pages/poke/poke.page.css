@@ -18,6 +18,8 @@
   --space-3: 16px;
   --space-4: 24px;
   --radius: 8px;
+  --map-bg: #cfe8c4; /* soft grass, there are no tiles */
+  --map-route: #8a7a52;
 
   font: 16px/1.5 var(--font);
   color: var(--color-primary-dark);
@@ -121,5 +123,12 @@ main.is-expanded .sheet-toggle svg {
 
   aside {
     min-height: 0;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :host {
+    --map-bg: #2d4a2c;
+    --map-route: #c9b98a;
   }
 }

@@ -1,0 +1,83 @@
+@if (game(); as g) {
+  <section class="trainer" aria-label="Trainer card">
+    <h3 class="season">
+      Season {{ g.season.number }}
+      <span class="started">started {{ g.season.started }}</span>
+    </h3>
+
+    <ul class="party">
+      @for (slot of g.party; track slot.slot) {
+        <li class="slot" [class.is-empty]="slot.species === null">
+          <div class="slot-top">
+            @if (slot.form?.sprite ?? slot.species?.sprite; as sprite) {
+              <img [src]="sprite" [alt]="slot.form?.display ?? slot.species?.display ?? ''" width="56" height="56" />
+            } @else {
+              <span class="empty-box" role="img" [attr.aria-label]="slot.type + ' slot, empty'">{{ slot.type }}</span>
+            }
+            <div class="slot-info">
+              <p class="slot-name">
+                {{ slot.nickname ?? slot.form?.display ?? slot.species?.display ?? 'Empty' }}
+                <span
+                  class="type-pill"
+                  [style.background]="typeColor(slot.type).bg"
+                  [style.color]="typeColor(slot.type).ink"
+                  >{{ slot.type }}</span
+                >
+              </p>
+              <p class="slot-level">
+                @if (slot.species === null) {
+                  Empty slot, {{ slot.xp }} XP banked
+                } @else {
+                  Lv {{ slot.level }}
+                }
+              </p>
+            </div>
+          </div>
+          <div
+            class="bar"
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            [attr.aria-valuenow]="clampPercent(slot.progress)"
+            [attr.aria-label]="slot.trackLabel + ' XP toward next level'"
+          >
+            <div class="fill" [style.width.%]="clampPercent(slot.progress)"></div>
+          </div>
+          <p class="xp-text">
+            @if (slot.species === null) {
+              {{ slot.xp }} XP
+            } @else {
+              {{ slot.xp }} / {{ slot.nextLevelXp }} XP
+            }
+          </p>
+          <p class="slot-track">{{ slot.trackLabel }}</p>
+          @if (slot.evolution; as evo) {
+            <p class="evo">
+              Evolves into {{ evo.display }}
+              @if (evo.minLevel !== null) {
+                at Lv {{ evo.minLevel }}
+              } @else if (evo.item) {
+                by {{ evo.item }}
+              }
+            </p>
+          }
+        </li>
+      }
+    </ul>
+
+    <p class="dex">
+      Pokedex: Seen {{ g.trainer.pokedex.seen }}, caught {{ g.trainer.pokedex.caught }} of {{ g.trainer.pokedex.cap }}
+    </p>
+
+    @if (g.scout; as scout) {
+      <div class="scout">
+        <p>Next round: {{ scout.company }} {{ scout.stage }}, {{ scout.trackLabel ?? scout.track }}</p>
+        @if (scout.reason) {
+          <p class="scout-reason">{{ scout.reason }}</p>
+        }
+      </div>
+    }
+  </section>
+} @else {
+  <p class="none">No trainer data yet. Run the game refresh.</p>
+}

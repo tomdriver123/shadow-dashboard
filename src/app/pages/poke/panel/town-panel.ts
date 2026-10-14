@@ -9,15 +9,16 @@ import {
   viewChildren,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Town } from '../data/town';
+import { GameData } from '../data/game';
+import { PoolEntry, Town, TownGate } from '../data/town';
 import { POKE_PATH, TOWN_PARAM } from '../poke-paths';
 import { PIN_PATH, pinColor } from '../map/pin-colors';
-import { amenityEmoji } from './amenity-emoji';
-import { TownImage } from './town-image';
+import { TrainerCard } from './trainer-card';
+import { typeColor } from './type-colors';
 
 @Component({
   selector: 'app-town-panel',
-  imports: [RouterLink, TownImage],
+  imports: [RouterLink, TrainerCard],
   templateUrl: './town-panel.html',
   styleUrl: './town-panel.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -28,8 +29,9 @@ export class TownPanel {
   readonly error = input.required<string | null>();
   /** Undefined means list mode. */
   readonly selectedId = input<string>();
+  readonly game = input<GameData | null>(null);
 
-  protected readonly amenityEmoji = amenityEmoji;
+  protected readonly typeColor = typeColor;
   protected readonly pinColor = pinColor;
   protected readonly PIN_PATH = PIN_PATH;
   protected readonly pokePath = POKE_PATH;
@@ -43,6 +45,36 @@ export class TownPanel {
     const id = this.selectedId();
     return id === undefined ? undefined : this.towns().find((town) => town.id === id);
   });
+
+  /** Pokedex state by species slug: 'caught' or 'seen'; absent means unseen. */
+  private readonly dexState = computed(() => {
+    const state = new Map<string, 'caught' | 'seen'>();
+    for (const entry of this.game()?.pokedex?.entries ?? []) {
+      state.set(entry.species, entry.caught ? 'caught' : 'seen');
+    }
+    return state;
+  });
+
+  protected poolState(entry: PoolEntry): 'caught' | 'seen' | 'unseen' {
+    return this.dexState().get(entry.species) ?? 'unseen';
+  }
+
+  protected isLocked(town: Town, entry: PoolEntry): boolean {
+    if (!entry.gated) {
+      return false;
+    }
+    const gate = town.gates.find((g) => g.scope === 'species' && g.species === entry.species);
+    return gate ? !gate.open : true;
+  }
+
+  protected subtitle(town: Town): string {
+    const home = town.mode === 'home' || town.mode === 'reflection' || town.mode === 'league';
+    return (home ? town.role : town.trackLabel) ?? town.role ?? '';
+  }
+
+  protected gateState(gate: TownGate): string {
+    return gate.open ? 'Open' : 'Locked';
+  }
 
   protected readonly title = computed(() => {
     const id = this.selectedId();

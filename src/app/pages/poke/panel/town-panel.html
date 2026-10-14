@@ -26,7 +26,19 @@
                   [style.color]="pinColor($index)"
                 >
                   <path fill="currentColor" [attr.d]="PIN_PATH" /></svg
-                >{{ town.name }}</a
+                ><span class="row-text"
+                  ><span class="row-name">{{ town.name }}</span>
+                  @if (subtitle(town); as sub) {
+                    <span class="row-sub">{{ sub }}</span>
+                  }</span
+                >
+                @if (town.type) {
+                  <span
+                    class="type-dot"
+                    aria-hidden="true"
+                    [style.background]="typeColor(town.type).bg"
+                  ></span>
+                }</a
               >
             </li>
           }
@@ -40,74 +52,57 @@
   } @else {
     @if (selected(); as town) {
       <article>
-        <div class="summary">
-          <dl>
-            <dt>Location</dt>
-            <dd>
-              @if (town.address !== null) {
-                {{ town.address }}
-              } @else if (town.coordinates !== null) {
-                {{ town.coordinates.lat }}, {{ town.coordinates.lng }}
-              } @else {
-                Location not available
-              }
-            </dd>
-            @if (town.hours !== null) {
-              <dt>Hours</dt>
-              <dd>{{ town.hours }}</dd>
-            }
-            @if (town.acreage !== null) {
-              <dt>Size</dt>
-              <dd>{{ town.acreage }} acres</dd>
-            }
-            @if (town.rating !== null) {
-              <dt>Rating</dt>
-              <dd>{{ town.rating }}</dd>
-            }
-          </dl>
-          <div class="preview">
-            @if (town.images.length > 0) {
-              <app-town-image class="thumb" aria-hidden="true" [src]="town.images[0]" alt="" />
-            }
-            @if (town.amenities.length > 0) {
-              <p class="emoji-row" aria-hidden="true">
-                @for (amenity of town.amenities; track $index) {
-                  {{ amenityEmoji(amenity) }}
-                }
-              </p>
-            }
-          </div>
-        </div>
-        <h3>Description</h3>
-        <p>{{ town.description ?? 'No description available.' }}</p>
-        @if (town.amenities.length > 0) {
-          <h3>Amenities</h3>
-          <ul class="amenities">
-            @for (amenity of town.amenities; track $index) {
-              <li>
-                <span class="emoji" aria-hidden="true">{{ amenityEmoji(amenity) }}</span>
-                <span class="label">{{ amenity }}</span>
-              </li>
-            }
-          </ul>
+        @if (town.role) {
+          <p class="role">{{ town.role }}</p>
         }
-        <h3>{{ town.images.length > 1 ? 'Photos' : 'Photo' }}</h3>
-        @if (town.images.length === 0) {
-          <app-town-image [src]="null" [alt]="town.name + ' photo'" />
+        @if (town.trackLabel) {
+          <p class="track">
+            <span>{{ town.trackLabel }}</span>
+            @if (town.type) {
+              <span
+                class="type-badge"
+                [style.background]="typeColor(town.type).bg"
+                [style.color]="typeColor(town.type).ink"
+                >{{ town.type }}</span
+              >
+            }
+          </p>
+        }
+        @if (town.mode === 'home') {
+          <app-trainer-card [game]="game()" />
         } @else {
-          <div class="gallery">
-            @for (image of town.images; track $index) {
-              <app-town-image
-                [src]="image"
-                [alt]="
-                  town.images.length > 1
-                    ? town.name + ' photo ' + ($index + 1)
-                    : town.name + ' photo'
-                "
-              />
-            }
+          @if (town.mode === 'external' && town.external) {
+            <p class="external">{{ town.external }}</p>
+          }
+          @if (town.pool.length > 0) {
+            <h3>Pool</h3>
+            <ul class="pool">
+              @for (entry of town.pool; track entry.species) {
+                <li class="mon" [class]="'mon ' + poolState(entry)">
+                  @if (entry.sprite) {
+                    <img [src]="entry.sprite" [alt]="entry.display" width="64" height="64" loading="lazy" />
+                  } @else {
+                    <span class="no-sprite" role="img" [attr.aria-label]="entry.display">?</span>
+                  }
+                  <span class="mon-name">{{ poolState(entry) === 'caught' ? entry.display : '???' }}</span>
+                  @if (isLocked(town, entry)) {
+                    <span class="lock" role="img" aria-label="Locked">&#128274;</span>
+                  }
+                </li>
+              }
+            </ul>
+          }
+        }
+        @for (gate of town.gates; track $index) {
+          <div class="gate" [class.is-open]="gate.open" [class.is-locked]="!gate.open">
+            <p class="gate-head">
+              <span class="gate-state">{{ gateState(gate) }}</span>
+              <span>{{ gate.scope === 'species' ? (gate.species ?? 'Species') : 'Town' }}</span>
+            </p>
+            <p>{{ gate.reason }}</p>
           </div>
         }
+        <div class="encounter-slot"><ng-content select="[data-slot='encounter']"></ng-content></div>
       </article>
     } @else {
       <p>No town matches this link.</p>

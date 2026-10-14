@@ -11,7 +11,7 @@
   <div class="finder">
     <main #sheet [class.is-expanded]="expanded()">
       <div id="sheet" class="sheet-content">
-        <app-town-panel [towns]="towns()" [loading]="loading()" [error]="error()" [selectedId]="id()">
+        <app-town-panel [towns]="towns()" [loading]="loading()" [error]="error()" [selectedId]="id()" [game]="game()">
           @if (id() !== undefined) {
             <a
               data-slot="start"
@@ -90,6 +90,7 @@
     <aside aria-label="Map" (focusin)="onMapFocusIn()">
       <app-town-map
         [towns]="towns()"
+        [routes]="routes()"
         [selectedId]="id()"
         [centerOffset]="centerOffset()"
         [fitRequest]="fitRequest()"

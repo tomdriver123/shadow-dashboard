@@ -1,4 +1,4 @@
-import { Town } from './town';
+import { PoolEntry, Town, TownGate, TownMode } from './town';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -18,15 +18,6 @@ function finiteNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
-function inRange(value: number | null, limit: number): value is number {
-  return value !== null && Math.abs(value) <= limit;
-}
-
-function amenityLabel(value: string): string {
-  const label = value.replace(/-/g, ' ');
-  return label.charAt(0).toUpperCase() + label.slice(1);
-}
-
 function strings(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
@@ -41,6 +32,67 @@ function strings(value: unknown): string[] {
   return result;
 }
 
+const MODES: TownMode[] = ['home', 'scout', 'mcq', 'external', 'reflection', 'league'];
+
+function bool(value: unknown): boolean {
+  return value === true;
+}
+
+function normalizePool(value: unknown): PoolEntry[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const pool: PoolEntry[] = [];
+  for (const row of value) {
+    if (!isRecord(row)) {
+      continue;
+    }
+    const species = text(row['species']);
+    if (species === null) {
+      continue;
+    }
+    pool.push({
+      species,
+      display: text(row['display']) ?? species,
+      dex: finiteNumber(row['dex']),
+      types: strings(row['types']),
+      sprite: text(row['sprite']),
+      gift: bool(row['gift']),
+      gated: bool(row['gated']),
+    });
+  }
+  return pool;
+}
+
+function normalizeGates(value: unknown): TownGate[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const gates: TownGate[] = [];
+  for (const row of value) {
+    if (!isRecord(row)) {
+      continue;
+    }
+    gates.push({
+      scope: row['scope'] === 'species' ? 'species' : 'town',
+      species: text(row['species']),
+      kind: text(row['kind']) ?? '',
+      open: bool(row['open']),
+      reason: text(row['reason']) ?? '',
+    });
+  }
+  return gates;
+}
+
+function normalizeGrid(value: unknown): { x: number; y: number } | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const x = finiteNumber(value['x']);
+  const y = finiteNumber(value['y']);
+  return x === null || y === null ? null : { x, y };
+}
+
 export function normalizeTown(raw: unknown): Town | null {
   if (!isRecord(raw)) {
     return null;
@@ -49,23 +101,25 @@ export function normalizeTown(raw: unknown): Town | null {
   if (id === null) {
     return null;
   }
-
-  const location = isRecord(raw['location']) ? raw['location'] : null;
-  const lat = finiteNumber(location?.['lat']);
-  const lng = finiteNumber(location?.['lng']);
-  const coordinates = inRange(lat, 90) && inRange(lng, 180) ? { lat, lng } : null;
+  // The generator writes 'quiz' for the multiple choice towns.
+  const rawMode = raw['mode'] === 'quiz' ? 'mcq' : raw['mode'];
+  const mode = MODES.find((m) => m === rawMode) ?? 'mcq';
 
   return {
     id,
     name: text(raw['name']) ?? id,
+    order: finiteNumber(raw['order']) ?? 0,
+    role: text(raw['role']),
     description: text(raw['description']),
-    coordinates,
-    address: text(location?.['address']),
-    amenities: strings(raw['amenities']).map(amenityLabel),
-    hours: text(raw['hours']),
-    images: strings(raw['images']),
-    acreage: finiteNumber(raw['acreage']),
-    rating: finiteNumber(raw['rating']),
+    mode,
+    track: text(raw['track']),
+    trackLabel: text(raw['trackLabel']),
+    type: text(raw['type']),
+    banks: strings(raw['banks']),
+    external: text(raw['external']),
+    grid: normalizeGrid(raw['grid']),
+    pool: normalizePool(raw['pool']),
+    gates: normalizeGates(raw['gates']),
   };
 }
 
