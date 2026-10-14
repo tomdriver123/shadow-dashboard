@@ -55,5 +55,12 @@
       <div class="agent-circle__name">Brain</div>
       <div class="agent-circle__role">Insights and research</div>
     </div>
+    <div class="agent-circle" (click)="openFeedback()">
+      <div class="agent-circle__avatar" [style.border-color]="'#38bdf8'">
+        <ion-icon name="chatbox-ellipses-outline" class="agent-circle__glyph" [style.color]="'#38bdf8'"></ion-icon>
+      </div>
+      <div class="agent-circle__name">Feedback</div>
+      <div class="agent-circle__role">Tell Shadow what to fix</div>
+    </div>
   </div>
 </ion-content>

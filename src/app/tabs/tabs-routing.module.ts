@@ -29,9 +29,8 @@ const routes: Routes = [
       },
       {
         path: 'feedback',
-        data: { feedbackAuthor: 'tom' },
-        loadChildren: () =>
-          import('../pages/feedback/feedback.module').then(m => m.FeedbackPageModule),
+        redirectTo: 'agents/feedback',
+        pathMatch: 'full',
       },
       {
         path: 'career',

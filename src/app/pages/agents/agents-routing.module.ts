@@ -14,6 +14,11 @@ const routes: Routes = [
     path: 'brain',
     loadChildren: () => import('../brain/brain.module').then(m => m.BrainPageModule),
   },
+  {
+    path: 'feedback',
+    data: { feedbackAuthor: 'tom' },
+    loadChildren: () => import('../feedback/feedback.module').then(m => m.FeedbackPageModule),
+  },
 ];
 
 @NgModule({

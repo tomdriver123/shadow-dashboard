@@ -38,4 +38,8 @@ export class AgentsPage implements OnInit {
   openBrain(): void {
     this.router.navigate(['/tabs/agents/brain']);
   }
+
+  openFeedback(): void {
+    this.router.navigate(['/tabs/agents/feedback']);
+  }
 }

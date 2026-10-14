@@ -14,7 +14,7 @@ export class AppComponent {
     { title: 'Home', url: '/tabs/home', icon: 'home-outline' },
     { title: 'Habits', url: '/tabs/habits', icon: 'calendar-outline' },
     { title: 'Agents', url: '/tabs/agents', icon: 'people-outline' },
-    { title: 'Feedback', url: '/tabs/feedback', icon: 'chatbox-ellipses-outline' },
+    { title: 'Feedback', url: '/tabs/agents/feedback', icon: 'chatbox-ellipses-outline' },
     { title: 'Career', url: '/tabs/career', icon: 'briefcase-outline' },
     { title: 'Poke Finder', url: '/tabs/poke', icon: 'map-outline' },
     { title: 'Sabrina', url: '/sabrina', icon: 'person-circle-outline' },
