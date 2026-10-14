@@ -13,6 +13,7 @@
     "test": "ng test",
     "lint": "ng lint",
     "refresh": "node scripts/refresh.js",
+    "test:scripts": "node --test \"scripts/test/*.test.js\"",
     "refresh:all": "node scripts/refresh.js all --sync"
   },
   "private": true,

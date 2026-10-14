@@ -110,6 +110,10 @@ const TARGETS = {
       { name: 'generate career.json', cmd: NODE, args: [gen('career'), ...(o.person ? ['--person', o.person] : [])], cwd: ROOT, timeoutMs: 120000 },
     ],
   },
+  game: {
+    label: 'Game',
+    steps: () => [{ name: 'generate game.json', cmd: NODE, args: [gen('game'), '--offline'], cwd: ROOT, timeoutMs: 120000 }],
+  },
   jobs: {
     label: 'Job hunt',
     steps: () => [{ name: 'generate jobs.json', cmd: NODE, args: [gen('jobs')], cwd: ROOT, timeoutMs: 60000 }],
@@ -124,7 +128,7 @@ const TARGETS = {
   },
 };
 
-const ORDER = ['finance', 'habits', 'career', 'jobs', 'brain', 'agents'];
+const ORDER = ['finance', 'habits', 'career', 'game', 'jobs', 'brain', 'agents'];
 const TARGET_NAMES = [...ORDER, 'all'];
 
 // ── step execution ───────────────────────────────────────────────────────
