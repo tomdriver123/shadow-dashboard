@@ -40,6 +40,9 @@
   min-height: 0;
   padding: var(--space-3);
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
 }
 
 h3 {

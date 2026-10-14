@@ -74,6 +74,7 @@
           @if (town.mode === 'external' && town.external) {
             <p class="external">{{ town.external }}</p>
           }
+          <div class="encounter-slot"><ng-content select="[data-slot='encounter']"></ng-content></div>
           @if (town.pool.length > 0) {
             <h3>Pool</h3>
             <ul class="pool">
@@ -102,7 +103,6 @@
             <p>{{ gate.reason }}</p>
           </div>
         }
-        <div class="encounter-slot"><ng-content select="[data-slot='encounter']"></ng-content></div>
       </article>
     } @else {
       <p>No town matches this link.</p>

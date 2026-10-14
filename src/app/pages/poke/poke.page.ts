@@ -57,10 +57,14 @@ export class PokePage {
   protected readonly loading = this.townsService.loading;
   protected readonly error = this.townsService.error;
 
-  /** Every navigation returns the sheet to peek; only the toggle expands it. */
+  /**
+   * A town detail opens with the sheet expanded so the encounter is on screen;
+   * returning to the list drops it back to peek so the map shows. The toggle
+   * still flips it either way.
+   */
   protected readonly expanded = linkedSignal({
     source: this.id,
-    computation: () => false,
+    computation: (id) => id !== undefined,
   });
   /** Incremented by Recenter; TownMap refits when it changes. */
   protected readonly fitRequest = signal(0);
