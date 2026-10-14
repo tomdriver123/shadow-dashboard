@@ -16,6 +16,7 @@ export class AppComponent {
     { title: 'Agents', url: '/tabs/agents', icon: 'people-outline' },
     { title: 'Feedback', url: '/tabs/feedback', icon: 'chatbox-ellipses-outline' },
     { title: 'Career', url: '/tabs/career', icon: 'briefcase-outline' },
+    { title: 'Poke Finder', url: '/tabs/poke', icon: 'map-outline' },
     { title: 'Sabrina', url: '/sabrina', icon: 'person-circle-outline' },
   ];
 

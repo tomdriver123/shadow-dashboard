@@ -1,0 +1,116 @@
+<div class="panel-bar">
+  <div class="slot"><ng-content select="[data-slot='start']" /></div>
+  <h2 id="panel-heading" tabindex="-1" #heading>{{ title() }}</h2>
+  <div class="slot"><ng-content select="[data-slot='end']" /></div>
+</div>
+<div class="panel-body">
+  @if (selectedId() === undefined) {
+    <nav aria-labelledby="panel-heading">
+      @if (loading()) {
+        <p role="status">Loading towns…</p>
+      } @else if (error()) {
+        <p role="alert">{{ error() }}</p>
+      } @else if (towns().length === 0) {
+        <p>No towns to show.</p>
+      } @else {
+        <ul class="town-list">
+          @for (town of towns(); track town.id) {
+            <li>
+              <a #townLink [routerLink]="pokePath" [queryParams]="townQuery(town.id)" [attr.data-town-id]="town.id"
+                ><svg
+                  class="pin"
+                  aria-hidden="true"
+                  viewBox="0 0 28 40"
+                  width="14"
+                  height="20"
+                  [style.color]="pinColor($index)"
+                >
+                  <path fill="currentColor" [attr.d]="PIN_PATH" /></svg
+                >{{ town.name }}</a
+              >
+            </li>
+          }
+        </ul>
+      }
+    </nav>
+  } @else if (loading()) {
+    <p role="status">Loading towns…</p>
+  } @else if (error()) {
+    <p role="alert">{{ error() }}</p>
+  } @else {
+    @if (selected(); as town) {
+      <article>
+        <div class="summary">
+          <dl>
+            <dt>Location</dt>
+            <dd>
+              @if (town.address !== null) {
+                {{ town.address }}
+              } @else if (town.coordinates !== null) {
+                {{ town.coordinates.lat }}, {{ town.coordinates.lng }}
+              } @else {
+                Location not available
+              }
+            </dd>
+            @if (town.hours !== null) {
+              <dt>Hours</dt>
+              <dd>{{ town.hours }}</dd>
+            }
+            @if (town.acreage !== null) {
+              <dt>Size</dt>
+              <dd>{{ town.acreage }} acres</dd>
+            }
+            @if (town.rating !== null) {
+              <dt>Rating</dt>
+              <dd>{{ town.rating }}</dd>
+            }
+          </dl>
+          <div class="preview">
+            @if (town.images.length > 0) {
+              <app-town-image class="thumb" aria-hidden="true" [src]="town.images[0]" alt="" />
+            }
+            @if (town.amenities.length > 0) {
+              <p class="emoji-row" aria-hidden="true">
+                @for (amenity of town.amenities; track $index) {
+                  {{ amenityEmoji(amenity) }}
+                }
+              </p>
+            }
+          </div>
+        </div>
+        <h3>Description</h3>
+        <p>{{ town.description ?? 'No description available.' }}</p>
+        @if (town.amenities.length > 0) {
+          <h3>Amenities</h3>
+          <ul class="amenities">
+            @for (amenity of town.amenities; track $index) {
+              <li>
+                <span class="emoji" aria-hidden="true">{{ amenityEmoji(amenity) }}</span>
+                <span class="label">{{ amenity }}</span>
+              </li>
+            }
+          </ul>
+        }
+        <h3>{{ town.images.length > 1 ? 'Photos' : 'Photo' }}</h3>
+        @if (town.images.length === 0) {
+          <app-town-image [src]="null" [alt]="town.name + ' photo'" />
+        } @else {
+          <div class="gallery">
+            @for (image of town.images; track $index) {
+              <app-town-image
+                [src]="image"
+                [alt]="
+                  town.images.length > 1
+                    ? town.name + ' photo ' + ($index + 1)
+                    : town.name + ' photo'
+                "
+              />
+            }
+          </div>
+        }
+      </article>
+    } @else {
+      <p>No town matches this link.</p>
+    }
+  }
+</div>

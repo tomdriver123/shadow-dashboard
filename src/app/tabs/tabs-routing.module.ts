@@ -40,6 +40,11 @@ const routes: Routes = [
           import('../pages/career/career.module').then(m => m.CareerPageModule),
       },
       {
+        path: 'poke',
+        loadChildren: () =>
+          import('../pages/poke/poke.routes').then(m => m.POKE_ROUTES),
+      },
+      {
         path: '',
         redirectTo: 'home',
         pathMatch: 'full',

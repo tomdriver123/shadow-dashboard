@@ -44,3 +44,19 @@ ion-split-pane {
   .desktop-only { display: revert; }
   .mobile-only  { display: none; }
 }
+
+/* Poke Finder tab. Global on purpose: Leaflet builds marker DOM outside Angular's views, so a
+   component style could not reach it. Tokens live on the page host (pages/poke/poke.page.css). */
+.poke-page :focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .poke-page *,
+  .poke-page *::before,
+  .poke-page *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

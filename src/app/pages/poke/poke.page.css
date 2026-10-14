@@ -1,0 +1,125 @@
+/* Park Finder palette and spacing tokens, scoped to this tab. The rest of the dashboard is dark. */
+:host {
+  --color-primary: #1e3d05; /* headings, brand chrome, default pin */
+  --color-primary-dark: #082301; /* body text */
+  --color-primary-light: #4e5809; /* subtle chrome, list dividers */
+  --color-secondary: #41220c; /* labels (dt), secondary headings */
+  --color-secondary-dark: #2d0d01;
+  --color-secondary-light: #5b3011; /* muted text, captions */
+  --color-tertiary: #2c4cd1; /* the accent: buttons, links, selected pin, focus ring */
+  --color-surface: #ffffff;
+  --color-surface-tint: color-mix(in srgb, var(--color-tertiary) 8%, white); /* selected row */
+  --color-primary-tint: color-mix(in srgb, var(--color-primary) 8%, white);
+  --color-border: color-mix(in srgb, var(--color-primary) 20%, white);
+  --focus-ring: 3px solid var(--color-tertiary);
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --radius: 8px;
+
+  font: 16px/1.5 var(--font);
+  color: var(--color-primary-dark);
+}
+
+/* ion-content sets its own color from --color (white in the dashboard's dark palette), which
+   would override the inherited body text color and hide dd and p text on the white panel. */
+ion-content {
+  --background: var(--color-surface);
+  --color: var(--color-primary-dark);
+}
+
+/* Fills ion-content; the mobile sheet is positioned against this box, not the viewport, so it
+   never slides under the tab bar. */
+.finder {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+
+aside {
+  position: relative;
+  isolation: isolate; /* keeps Leaflet's internal z-indexes (up to 1000) inside the map */
+  height: 100%;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+}
+
+.sheet-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.back,
+.recenter,
+.sheet-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 0;
+  border: 1px solid var(--color-surface);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-surface);
+  cursor: pointer;
+}
+
+.back:hover,
+.recenter:hover,
+.sheet-toggle:hover {
+  background: color-mix(in srgb, var(--color-surface) 15%, transparent);
+}
+
+.sheet-toggle svg {
+  transition: transform 200ms ease;
+}
+
+main.is-expanded .sheet-toggle svg {
+  transform: rotate(180deg);
+}
+
+/* Keep in sync with isMobile() in poke.page.ts */
+@media (max-width: 767.98px) {
+  main {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    height: 40%;
+    border-top: 1px solid var(--color-primary-light);
+    border-radius: var(--radius) var(--radius) 0 0;
+    transition: height 200ms ease;
+  }
+
+  main.is-expanded {
+    height: 70%;
+  }
+}
+
+/* Keep in sync with isMobile() in poke.page.ts */
+@media (min-width: 768px) {
+  .finder {
+    display: grid;
+    grid-template-columns: minmax(320px, 400px) 1fr;
+    min-height: 0;
+  }
+
+  main {
+    min-height: 0;
+  }
+
+  aside {
+    min-height: 0;
+  }
+}

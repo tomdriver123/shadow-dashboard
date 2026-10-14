@@ -1,0 +1,17 @@
+<div class="frame">
+  @if (state() === 'loading') {
+    <div class="skeleton" aria-hidden="true"></div>
+  }
+  @if (src() !== null && state() !== 'error') {
+    <img
+      [src]="src()"
+      [alt]="alt()"
+      [class.hidden]="state() === 'loading'"
+      (load)="state.set('loaded')"
+      (error)="state.set('error')"
+    />
+  }
+  @if (state() === 'error') {
+    <div class="placeholder">No image available</div>
+  }
+</div>

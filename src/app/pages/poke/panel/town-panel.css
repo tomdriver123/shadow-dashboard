@@ -1,0 +1,146 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.panel-bar {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-secondary);
+}
+
+.slot {
+  display: flex;
+}
+
+.slot:last-child {
+  justify-content: flex-end;
+}
+
+.panel-bar h2 {
+  margin: 0;
+  color: var(--color-surface);
+  font-size: 1.1rem;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+/* The tertiary ring is about 2.1:1 on the brown bar, under the 3:1 a focus indicator needs; white is 13:1. */
+.panel-bar :focus-visible {
+  outline-color: var(--color-surface);
+}
+
+.panel-body {
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-3);
+  overflow-y: auto;
+}
+
+h3 {
+  margin: var(--space-4) 0 var(--space-2);
+  color: var(--color-secondary);
+  font-size: 1.1rem;
+}
+
+.town-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid color-mix(in srgb, var(--color-primary-light) 40%, white);
+}
+
+.town-list li {
+  border-bottom: 1px solid color-mix(in srgb, var(--color-primary-light) 40%, white);
+}
+
+.town-list a {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-2);
+  color: var(--color-tertiary);
+  text-decoration: none;
+}
+
+.town-list a:hover,
+.town-list a:focus-visible {
+  background: var(--color-primary-tint);
+  text-decoration: underline;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+
+dt {
+  color: var(--color-secondary);
+  font-weight: 600;
+}
+
+dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+p {
+  margin: 0;
+}
+
+.amenities {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.amenities li {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius);
+  background: var(--color-primary-tint);
+}
+
+article {
+  container-type: inline-size;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.thumb {
+  width: 112px;
+}
+
+.emoji-row {
+  margin: var(--space-2) 0 0;
+  max-width: 112px;
+  font-size: 1.25rem;
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+.gallery {
+  display: grid;
+  gap: var(--space-2);
+}
+
+@container (max-width: 339.98px) {
+  .summary {
+    grid-template-columns: 1fr;
+  }
+}
