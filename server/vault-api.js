@@ -46,7 +46,8 @@ const execFileAsync = promisify(execFile);
 
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.VAULT_API_PORT || process.env.FEEDBACK_API_PORT) || 4201;
-const ROOT = path.resolve(__dirname, '..', '..', 'vault', 'feedback');
+const VAULT = process.env.SHADOW_VAULT_DIR || path.resolve(__dirname, '..', '..', 'vault');
+const ROOT = path.join(VAULT, 'feedback');
 const AUTHORS = ['tom', 'sabrina'];
 
 const ID_RE = /^\d{4}-\d{2}-\d{2}-\d{6}-[a-z0-9]{4}$/;
@@ -57,9 +58,7 @@ const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_IMAGES = 6;
 const MAX_TEXT_LEN = 20000;
 
-const SABRINA_QUEUE = path.resolve(
-  __dirname, '..', '..', 'vault', 'projects', 'job-hunt-sabrina', 'digest', 'queue.md'
-);
+const SABRINA_QUEUE = path.join(VAULT, 'projects', 'job-hunt-sabrina', 'digest', 'queue.md');
 const CAREER_GENERATOR = path.resolve(__dirname, '..', 'scripts', 'generate-career-data.js');
 const QUEUE_ID_RE = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const MAX_VERDICT_BODY_BYTES = 4096;
@@ -72,9 +71,7 @@ const VERDICTS = ['liked', 'passed'];
 // and deletes the file as it goes. This route never touches kb-log.md, the
 // question bank, or the career generator.
 
-const OFFLINE_DIR = path.resolve(
-  __dirname, '..', '..', 'vault', 'projects', 'job-hunt', 'interview-prep', 'kb', 'offline'
-);
+const OFFLINE_DIR = path.join(VAULT, 'projects', 'job-hunt', 'interview-prep', 'kb', 'offline');
 const QUESTION_ID_RE = /^[a-z]{2,6}-\d{3,}$/;
 const QUIZ_TOPIC_RE = /^[a-z0-9][a-z0-9-]{0,31}$/;
 const LETTER_RE = /^[A-F]$/;
@@ -87,15 +84,16 @@ const MAX_QUIZ_BODY_BYTES = 4096;
 // backs launchd and the CLI. This API only starts a run and reports on it;
 // the "how to refresh X" logic lives entirely in that script.
 
-const DATA_DIR = path.resolve(__dirname, '..', 'src', 'assets', 'data');
+const DATA_DIR = process.env.SHADOW_DATA_DIR || path.resolve(__dirname, '..', 'src', 'assets', 'data');
 const REFRESH_SCRIPT = path.resolve(__dirname, '..', 'scripts', 'refresh.js');
 const REFRESH_STATE = path.join(DATA_DIR, 'refresh.json');
-const REFRESH_TARGETS = ['finance', 'habits', 'career', 'jobs', 'brain', 'agents', 'all'];
+const REFRESH_TARGETS = ['finance', 'habits', 'career', 'game', 'jobs', 'brain', 'agents', 'all'];
 const SYNC_BY_DEFAULT = new Set(['finance', 'habits', 'all']);
 const DATA_FILES = {
   finance: 'finance.json',
   habits: 'habits.json',
   career: 'career.json',
+  game: 'game.json',
   jobs: 'jobs.json',
   brain: 'brain.json',
   agents: 'agents.json',
@@ -103,6 +101,20 @@ const DATA_FILES = {
 const REFRESH_TIMEOUT_MS = 180000;
 const PERSONS = ['tom', 'sabrina'];
 const running = new Set();
+
+// ── game encounters ───────────────────────────────────────────────────────
+// POST /api/game/encounter: a quiz answer (or a gated free catch) from the
+// phone becomes one row in pokedex.md. Quiz answers also drop the usual
+// offline attempt file so /quiz reconciles them into kb-log.md.
+
+const GAME_DIR = path.join(VAULT, 'projects', 'game');
+const POKEDEX_FILE = path.join(GAME_DIR, 'pokedex.md');
+const TOWN_RE = /^[a-z]+(-[a-z]+)*$/;
+const SPECIES_RE = /^[a-z][a-z0-9-]{1,30}$/;
+const MAX_ENCOUNTER_BODY_BYTES = 4096;
+const GAME_GENERATOR = path.resolve(__dirname, '..', 'scripts', 'generate-game-data.js');
+const GAME_REGEN_DEBOUNCE_MS = 3000;
+let gameRegenTimer = null;
 
 const IMAGE_TYPES = {
   'image/png': 'png',
@@ -625,66 +637,47 @@ function listOfflineEntries() {
   return entries;
 }
 
-async function handleQuizAttempt(req, res) {
-  const raw = await readBody(req, res, MAX_QUIZ_BODY_BYTES);
-  if (raw === null) return; // 413 already sent, or the connection died
-
-  let data;
-  try {
-    data = JSON.parse(raw.toString('utf8'));
-  } catch {
-    sendJson(res, 400, { error: 'invalid JSON body' });
-    return;
+// Validates the quiz fields and writes the offline attempt file. Returns
+// { status, entry } or { status: 400, error }; never touches the response.
+function writeOfflineAttempt(fields) {
+  if (!fields || typeof fields !== 'object' || Array.isArray(fields)) {
+    return { status: 400, error: 'body must be a JSON object' };
   }
-  if (!data || typeof data !== 'object' || Array.isArray(data)) {
-    sendJson(res, 400, { error: 'body must be a JSON object' });
-    return;
-  }
-
-  const { questionId, topic, pick, answer, result, answered } = data;
+  const { questionId, topic, pick, answer, result, answered } = fields;
 
   if (typeof questionId !== 'string' || !QUESTION_ID_RE.test(questionId)) {
-    sendJson(res, 400, { error: 'questionId must match /^[a-z]{2,6}-\\d{3,}$/' });
-    return;
+    return { status: 400, error: 'questionId must match /^[a-z]{2,6}-\\d{3,}$/' };
   }
   if (typeof topic !== 'string' || !QUIZ_TOPIC_RE.test(topic)) {
-    sendJson(res, 400, { error: 'topic must match /^[a-z0-9][a-z0-9-]{0,31}$/' });
-    return;
+    return { status: 400, error: 'topic must match /^[a-z0-9][a-z0-9-]{0,31}$/' };
   }
   if (typeof pick !== 'string' || !LETTER_RE.test(pick)) {
-    sendJson(res, 400, { error: 'pick must match /^[A-F]$/' });
-    return;
+    return { status: 400, error: 'pick must match /^[A-F]$/' };
   }
   if (typeof answer !== 'string' || !LETTER_RE.test(answer)) {
-    sendJson(res, 400, { error: 'answer must match /^[A-F]$/' });
-    return;
+    return { status: 400, error: 'answer must match /^[A-F]$/' };
   }
   if (typeof result !== 'string' || !QUIZ_RESULTS.includes(result)) {
-    sendJson(res, 400, { error: `result must be one of ${QUIZ_RESULTS.join(', ')}` });
-    return;
+    return { status: 400, error: `result must be one of ${QUIZ_RESULTS.join(', ')}` };
   }
   if (typeof answered !== 'string' || !ANSWERED_RE.test(answered) || Number.isNaN(Date.parse(answered))) {
-    sendJson(res, 400, {
+    return {
+      status: 400,
       error: 'answered must match /^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}$/ with an explicit local offset (no Z) and be parseable',
-    });
-    return;
+    };
   }
 
-  // Idempotent retry: the file already exists. Respond with what is
-  // actually stored and write nothing new.
+  // Idempotent retry: the file already exists. Report what is actually
+  // stored and write nothing new.
   const existing = readOfflineEntry(questionId);
-  if (existing) {
-    sendJson(res, 200, { entry: existing });
-    return;
-  }
+  if (existing) return { status: 200, entry: existing };
 
   fs.mkdirSync(OFFLINE_DIR, { recursive: true });
 
   const fp = offlineEntryPath(questionId);
   const resolved = path.resolve(fp);
   if (resolved !== fp || !resolved.startsWith(OFFLINE_DIR + path.sep)) {
-    sendJson(res, 400, { error: 'invalid questionId path' });
-    return;
+    return { status: 400, error: 'invalid questionId path' };
   }
 
   const md =
@@ -704,11 +697,30 @@ async function handleQuizAttempt(req, res) {
     fs.writeFileSync(tmp, md, 'utf8');
     fs.renameSync(tmp, resolved);
   } catch (err) {
-    sendJson(res, 500, { error: `failed to write attempt: ${err.message}` });
+    return { status: 500, error: `failed to write attempt: ${err.message}` };
+  }
+
+  return { status: 201, entry: readOfflineEntry(questionId) };
+}
+
+async function handleQuizAttempt(req, res) {
+  const raw = await readBody(req, res, MAX_QUIZ_BODY_BYTES);
+  if (raw === null) return; // 413 already sent, or the connection died
+
+  let data;
+  try {
+    data = JSON.parse(raw.toString('utf8'));
+  } catch {
+    sendJson(res, 400, { error: 'invalid JSON body' });
     return;
   }
 
-  sendJson(res, 201, { entry: readOfflineEntry(questionId) });
+  const out = writeOfflineAttempt(data);
+  if (out.error) {
+    sendJson(res, out.status, { error: out.error });
+    return;
+  }
+  sendJson(res, out.status, { entry: out.entry });
 }
 
 function handleQuizAttempts(res) {
@@ -876,6 +888,218 @@ async function handleRefreshRun(res, target, urlObj) {
   }
 }
 
+// ── POST /api/game/encounter ──────────────────────────────────────────────
+
+function readTownsFile() {
+  const fp = path.join(DATA_DIR, 'towns.json');
+  let parsed;
+  try {
+    parsed = JSON.parse(fs.readFileSync(fp, 'utf8'));
+  } catch {
+    return null;
+  }
+  const list = Array.isArray(parsed) ? parsed : parsed && Array.isArray(parsed.towns) ? parsed.towns : null;
+  return list;
+}
+
+function hasOpenSpeciesGate(town, species) {
+  const gates = Array.isArray(town.gates) ? town.gates : [];
+  return gates.some((g) => g && g.scope === 'species' && g.species === species && g.open === true);
+}
+
+// Pokedex table parse. Returns { fm, lines, rows, lastRowIdx } where rows are
+// { date, species, town, question, result } and lastRowIdx is the index in
+// lines of the last table row (or the separator line if no data rows).
+function parsePokedex(raw) {
+  const lines = raw.split('\n');
+  let season = 1;
+  const seasons = [];
+  if (lines[0] === '---') {
+    let inSeasons = false;
+    for (let i = 1; i < lines.length && lines[i] !== '---'; i++) {
+      const line = lines[i];
+      const sm = /^season:\s*(\d+)\s*$/.exec(line);
+      if (sm) {
+        season = Number(sm[1]);
+        inSeasons = false;
+        continue;
+      }
+      if (/^seasons:\s*$/.test(line)) {
+        inSeasons = true;
+        continue;
+      }
+      if (inSeasons) {
+        const m = /^\s*-\s*\{\s*number:\s*(\d+)\s*,\s*started:\s*(\d{4}-\d{2}-\d{2})\s*\}\s*$/.exec(line);
+        if (m) seasons.push({ number: Number(m[1]), started: m[2] });
+        else if (/^\S/.test(line)) inSeasons = false;
+      }
+    }
+  }
+  const current = seasons.find((x) => x.number === season);
+  const started = current ? current.started : '0000-00-00';
+
+  const rows = [];
+  let headerIdx = -1;
+  let lastRowIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (headerIdx < 0) {
+      if (/^\|\s*Date\s*\|\s*Species\s*\|\s*Town\s*\|\s*Question\s*\|\s*Result\s*\|\s*$/.test(lines[i])) {
+        headerIdx = i;
+        lastRowIdx = i + 1; // separator line
+        i++;
+      }
+      continue;
+    }
+    if (!lines[i].startsWith('|')) break;
+    const cells = lines[i].split('|').slice(1, -1).map((c) => c.trim());
+    if (cells.length !== 5) break;
+    rows.push({ date: cells[0], species: cells[1], town: cells[2], question: cells[3], result: cells[4] });
+    lastRowIdx = i;
+  }
+  if (headerIdx < 0) return null;
+  return { lines, rows, lastRowIdx, started };
+}
+
+function scheduleGameRegen() {
+  if (gameRegenTimer) clearTimeout(gameRegenTimer);
+  gameRegenTimer = setTimeout(() => {
+    gameRegenTimer = null;
+    if (running.has('game') || running.has('all')) return;
+    if (!fs.existsSync(GAME_GENERATOR)) {
+      process.stderr.write(`[vault-api] game regen skipped, ${GAME_GENERATOR} not found\n`);
+      return;
+    }
+    running.add('game');
+    execFile(
+      process.execPath,
+      [GAME_GENERATOR, '--offline', '--vault', VAULT, '--out', DATA_DIR],
+      { cwd: path.resolve(__dirname, '..'), timeout: 120000 },
+      (err, _stdout, stderr) => {
+        running.delete('game');
+        if (err) process.stderr.write(`[vault-api] game regen failed: ${stderr || err.message}\n`);
+      }
+    );
+  }, GAME_REGEN_DEBOUNCE_MS);
+}
+
+async function handleGameEncounter(req, res) {
+  const raw = await readBody(req, res, MAX_ENCOUNTER_BODY_BYTES);
+  if (raw === null) return; // 413 already sent, or the connection died
+
+  let data;
+  try {
+    data = JSON.parse(raw.toString('utf8'));
+  } catch {
+    sendJson(res, 400, { error: 'invalid JSON body' });
+    return;
+  }
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    sendJson(res, 400, { error: 'body must be a JSON object' });
+    return;
+  }
+
+  // Everything below is synchronous, the single thread is the lock.
+  const { questionId, town, species, answered } = data;
+
+  if (typeof town !== 'string' || !TOWN_RE.test(town)) {
+    sendJson(res, 400, { error: 'town must match /^[a-z]+(-[a-z]+)*$/' });
+    return;
+  }
+  if (typeof species !== 'string' || !SPECIES_RE.test(species)) {
+    sendJson(res, 400, { error: 'species must match /^[a-z][a-z0-9-]{1,30}$/' });
+    return;
+  }
+  if (typeof answered !== 'string' || !ANSWERED_RE.test(answered) || Number.isNaN(Date.parse(answered))) {
+    sendJson(res, 400, {
+      error: 'answered must be a local ISO timestamp with an explicit offset (no Z) and be parseable',
+    });
+    return;
+  }
+
+  const towns = readTownsFile();
+  if (!towns) {
+    sendJson(res, 503, { error: 'towns.json is missing or unreadable, run the game generator' });
+    return;
+  }
+  const townRow = towns.find((t) => t && t.id === town);
+  if (!townRow) {
+    sendJson(res, 404, { error: `unknown town ${town}` });
+    return;
+  }
+
+  const freeCatch = questionId === null;
+  if (freeCatch && !hasOpenSpeciesGate(townRow, species)) {
+    sendJson(res, 400, { error: 'questionId is required unless an open species gate allows a free catch' });
+    return;
+  }
+
+  let result;
+  let entry = null;
+  if (!freeCatch) {
+    const out = writeOfflineAttempt(data);
+    if (out.error) {
+      sendJson(res, out.status, { error: out.error });
+      return;
+    }
+    entry = out.entry;
+    result = out.status === 200 && entry && entry.result ? entry.result : data.result;
+  }
+
+  let raw2;
+  try {
+    raw2 = fs.readFileSync(POKEDEX_FILE, 'utf8');
+  } catch (err) {
+    sendJson(res, 500, { error: `failed to read pokedex: ${err.message}` });
+    return;
+  }
+  const dex = parsePokedex(raw2);
+  if (!dex) {
+    sendJson(res, 500, { error: 'pokedex.md has no Date | Species | Town | Question | Result table' });
+    return;
+  }
+
+  const questionCell = freeCatch ? 'free' : questionId;
+  const caughtThisSeason = (r) => r.species === species && r.result === 'caught' && r.date >= dex.started;
+
+  if (freeCatch) {
+    const prior = dex.rows.find((r) => r.question === 'free' && caughtThisSeason(r));
+    if (prior) {
+      sendJson(res, 200, { row: prior });
+      return;
+    }
+  } else {
+    const prior = dex.rows.find((r) => r.question === questionId);
+    if (prior) {
+      sendJson(res, 200, { entry, row: prior });
+      return;
+    }
+  }
+
+  let outcome;
+  if (freeCatch) outcome = 'caught';
+  else if (result === 'miss') outcome = 'fled';
+  else outcome = dex.rows.some(caughtThisSeason) ? 'xp' : 'caught';
+
+  const row = { date: answered.slice(0, 10), species, town, question: questionCell, result: outcome };
+  const line = `| ${row.date} | ${row.species} | ${row.town} | ${row.question} | ${row.result} |`;
+  const lines = dex.lines.slice();
+  lines.splice(dex.lastRowIdx + 1, 0, line);
+  let text = lines.join('\n');
+  text = text.replace(/\n*$/, '\n');
+
+  const tmp = `${POKEDEX_FILE}.tmp`;
+  try {
+    fs.writeFileSync(tmp, text, 'utf8');
+    fs.renameSync(tmp, POKEDEX_FILE);
+  } catch (err) {
+    sendJson(res, 500, { error: `failed to write pokedex: ${err.message}` });
+    return;
+  }
+
+  scheduleGameRegen();
+  sendJson(res, 201, { entry, row });
+}
+
 // ── routing ────────────────────────────────────────────────────────────────
 
 async function handleRequest(req, res, method, pathname, urlObj) {
@@ -891,6 +1115,8 @@ async function handleRequest(req, res, method, pathname, urlObj) {
       authors: AUTHORS,
       queue: SABRINA_QUEUE,
       quizOfflineDir: OFFLINE_DIR,
+      gameDir: GAME_DIR,
+      pokedexFile: POKEDEX_FILE,
       refreshTargets: REFRESH_TARGETS,
       running: [...running],
     });
@@ -929,6 +1155,11 @@ async function handleRequest(req, res, method, pathname, urlObj) {
 
   if (method === 'POST' && pathname === '/api/quiz/attempt') {
     await handleQuizAttempt(req, res);
+    return;
+  }
+
+  if (method === 'POST' && pathname === '/api/game/encounter') {
+    await handleGameEncounter(req, res);
     return;
   }
 

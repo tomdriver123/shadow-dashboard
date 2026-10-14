@@ -1,4 +1,5 @@
-import { Component, Input, OnChanges, SimpleChanges, inject } from '@angular/core';
+import { Component, DestroyRef, Input, OnChanges, SimpleChanges, inject } from '@angular/core';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { CareerScope } from '../../../../services/career-scope';
 import { KbData, KbQuestion } from '../../../../services/career.model';
 import { QuizAnswer, QuizCardService } from '../../../../services/quiz-card.service';
@@ -19,6 +20,7 @@ import { QuizAnswer, QuizCardService } from '../../../../services/quiz-card.serv
 })
 export class KbQuizCardComponent implements OnChanges {
   private readonly quizCardService = inject(QuizCardService);
+  private readonly destroyRef = inject(DestroyRef);
 
   @Input() scope!: CareerScope;
   @Input() kb: KbData | null = null;
@@ -26,6 +28,18 @@ export class KbQuizCardComponent implements OnChanges {
   queue: KbQuestion[] = [];
   current: KbQuestion | null = null;
   answer: QuizAnswer | null = null;
+
+  constructor() {
+    toObservable(this.quizCardService.version)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.queue = this.quizCardService.queueFor(this.kb);
+        if (this.current && !this.answer) {
+          const done = this.quizCardService.answerOf(this.current.id);
+          if (done) this.answer = done;
+        }
+      });
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['kb']) {
