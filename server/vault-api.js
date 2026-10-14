@@ -113,6 +113,37 @@ const TOWN_RE = /^[a-z]+(-[a-z]+)*$/;
 const SPECIES_RE = /^[a-z][a-z0-9-]{1,30}$/;
 const MAX_ENCOUNTER_BODY_BYTES = 4096;
 const GAME_GENERATOR = path.resolve(__dirname, '..', 'scripts', 'generate-game-data.js');
+
+// ── static dashboard build ────────────────────────────────────────────────
+// The production build (dashboard/www) is served from this process so the
+// phone gets build plus API on one origin through Tailscale, with no `npm
+// start` in a terminal. Data JSON under /assets/data is served live from the
+// source tree, so a regenerated game.json or career.json shows on the next
+// load without a rebuild. Set SHADOW_STATIC_DIR= (empty) to disable.
+const STATIC_DIR =
+  process.env.SHADOW_STATIC_DIR === undefined
+    ? path.resolve(__dirname, '..', 'www')
+    : process.env.SHADOW_STATIC_DIR;
+const STATIC_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.map': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.txt': 'text/plain; charset=utf-8',
+  '.webmanifest': 'application/manifest+json',
+};
 const GAME_REGEN_DEBOUNCE_MS = 3000;
 let gameRegenTimer = null;
 
@@ -1102,6 +1133,60 @@ async function handleGameEncounter(req, res) {
 
 // ── routing ────────────────────────────────────────────────────────────────
 
+// Resolve a request path inside a root dir, refusing anything that escapes it.
+function safeStaticPath(rootDir, relPath) {
+  const root = path.resolve(rootDir);
+  const target = path.resolve(root, '.' + relPath);
+  if (target !== root && !target.startsWith(root + path.sep)) return null;
+  return target;
+}
+
+function sendFile(res, filePath, extraHeaders) {
+  let stat;
+  try {
+    stat = fs.statSync(filePath);
+  } catch {
+    return false;
+  }
+  if (!stat.isFile()) return false;
+  const type = STATIC_TYPES[path.extname(filePath).toLowerCase()] || 'application/octet-stream';
+  res.writeHead(200, {
+    'Content-Type': type,
+    'Content-Length': stat.size,
+    'Cache-Control': 'no-cache',
+    ...(extraHeaders || {}),
+  });
+  fs.createReadStream(filePath).pipe(res);
+  return true;
+}
+
+// GET anything outside /api: live data JSON first, then the build, then the
+// SPA fallback to index.html for client side routes like /tabs/poke.
+function serveStatic(res, method, pathname) {
+  if (!STATIC_DIR) return false;
+  if (method !== 'GET' && method !== 'HEAD') return false;
+  let decoded;
+  try {
+    decoded = decodeURIComponent(pathname);
+  } catch {
+    return false;
+  }
+  if (decoded.includes('\0')) return false;
+
+  if (decoded.startsWith('/assets/data/') && decoded.endsWith('.json')) {
+    const live = safeStaticPath(DATA_DIR, decoded.slice('/assets/data'.length));
+    if (live && sendFile(res, live)) return true;
+  }
+
+  const built = safeStaticPath(STATIC_DIR, decoded);
+  if (built && path.extname(decoded) !== '' && sendFile(res, built)) return true;
+  if (built && path.extname(decoded) === '') {
+    const index = path.join(STATIC_DIR, 'index.html');
+    if (sendFile(res, index)) return true;
+  }
+  return false;
+}
+
 async function handleRequest(req, res, method, pathname, urlObj) {
   if (!urlObj) {
     sendJson(res, 400, { error: 'invalid request url' });
@@ -1173,6 +1258,8 @@ async function handleRequest(req, res, method, pathname, urlObj) {
     await handleRefreshRun(res, target, urlObj);
     return;
   }
+
+  if (!pathname.startsWith('/api/') && serveStatic(res, method, pathname)) return;
 
   sendJson(res, 404, { error: 'not found' });
 }
