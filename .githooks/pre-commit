@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Public-hygiene gate. Runs the private scrub kit's gate on the staged index when it is present
+# on this machine; a no-op for everyone else.
+GATE="${SHADOW_ROOT:-$HOME/shadow}/vault/tools/git/gate.sh"
+[[ -x "$GATE" ]] || exit 0
+exec "$GATE" "$(git rev-parse --show-toplevel)" --staged
