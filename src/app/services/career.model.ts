@@ -267,6 +267,8 @@ export interface NeedsYouItem {
 
 export interface CareerContext {
   person: string;
+  /** Human name for the scope's person, from the vault's career-persons.json. Absent in payloads generated before it existed. */
+  displayName?: string;
   huntStart: string;
   huntDay: number;
   lastDay: string | null;
