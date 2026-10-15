@@ -5,8 +5,10 @@ const os = require('os');
 const path = require('path');
 const g = require('../generate-game-data.js');
 
-const REAL_VAULT = path.resolve(__dirname, '..', '..', '..', 'vault');
-const FIX = path.join(__dirname, 'fixtures', 'game');
+// Synthetic vault checked in next to the tests: invented companies and
+// people, plus a few PokeAPI species files. The tests never read the real vault.
+const SAMPLE_VAULT = path.join(__dirname, 'fixtures', 'sample-vault');
+const SAMPLE_PIPELINES = path.join(SAMPLE_VAULT, 'projects/job-hunt/pipeline');
 
 const BANKS_TABLE = `## Banks
 
@@ -65,7 +67,8 @@ function makeVault(files) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'game-vault-'));
   const sp = path.join(dir, 'projects/game/species');
   fs.mkdirSync(sp, { recursive: true });
-  for (const n of ['charmander', 'charmeleon', 'charizard']) fs.copyFileSync(path.join(REAL_VAULT, 'projects/game/species', `${n}.json`), path.join(sp, `${n}.json`));
+  const sampleSpecies = path.join(SAMPLE_VAULT, 'projects/game/species');
+  for (const f of fs.readdirSync(sampleSpecies)) fs.copyFileSync(path.join(sampleSpecies, f), path.join(sp, f));
   for (const [rel, content] of Object.entries({ 'projects/game/towns.md': MINI_TOWNS, ...files })) {
     const f = path.join(dir, rel);
     fs.mkdirSync(path.dirname(f), { recursive: true });
@@ -113,17 +116,30 @@ async function buildMini(files) {
 
 const slotXp = (game, track) => game.party.find(p => p.track === track).xp;
 
-// ── towns.md on the real file ────────────────────────────────────────────
+// ── towns.md on the sample vault ─────────────────────────────────────────
 
-test('real towns.md parses to the expected table sizes', () => {
-  const T = g.parseTowns(fs.readFileSync(path.join(REAL_VAULT, 'projects/game/towns.md'), 'utf-8'));
-  assert.equal(T.encounters.length, 11);
+test('sample towns.md parses to the expected table sizes', () => {
+  const T = g.parseTowns(fs.readFileSync(path.join(SAMPLE_VAULT, 'projects/game/towns.md'), 'utf-8'));
+  assert.equal(T.encounters.length, 4);
   assert.equal(T.party.length, 6);
-  assert.equal(T.banks.length, 9);
-  assert.equal(T.gates.length, 3);
-  assert.equal(Object.keys(T.grid).length, 11);
-  assert.equal(T.routes.length, 12);
+  assert.equal(T.banks.length, 2);
+  assert.equal(T.gates.length, 2);
+  assert.equal(Object.keys(T.grid).length, 4);
+  assert.equal(T.routes.length, 3);
   assert.equal(g.currentSeason(T.seasons).started, '2026-08-12');
+});
+
+test('the sample vault builds end to end offline with a header only pokedex', async () => {
+  const r = await g.build({ vaultDir: SAMPLE_VAULT, offline: true, now: '2026-10-14T14:00:00-04:00' });
+  assert.equal(r.towns.length, 4);
+  assert.equal(r.game.party.length, 6);
+  assert.equal(r.game.trainer.pokedex.seen, 0);
+  assert.equal(r.game.trainer.pokedex.caught, 0);
+  assert.equal(r.game.scout.company, 'Acme');
+  const viridian = r.towns.find(t => t.id === 'viridian-city');
+  assert.equal(viridian.mode, 'scout');
+  assert.equal(viridian.track, 'hunt-grind');
+  assert.ok(r.game.trainer.xpTotal > 0, 'the sample bank, kb-log, drill and application rows pay some xp');
 });
 
 test('tableUnder returns the first table after a heading', () => {
@@ -149,7 +165,7 @@ test('frontmatter dates stay strings', () => {
 // ── levels ────────────────────────────────────────────────────────────────
 
 test('medium slow levels from the cached charmander file', () => {
-  const file = path.join(REAL_VAULT, 'projects/game/species/charmander.json');
+  const file = path.join(SAMPLE_VAULT, 'projects/game/species/charmander.json');
   const c = JSON.parse(fs.readFileSync(file, 'utf-8'));
   assert.equal(c.levels.length, 100);
   assert.equal(g.levelFor(2535, c.levels), 16);
@@ -242,9 +258,9 @@ test('drill and hunt xp, hunt gets no share', async () => {
 });
 
 test('applications parse handles both tables and skips header rows', () => {
-  const md = '| date | company | role | url | resume | status | follow_up |\n|---|---|---|---|---|---|---|\n| 2026-08-31 | LD | FS | u | r | submitted | f |\n\n| Date | Company | Role | Source | Resume variant | Status | Next action |\n|---|---|---|---|---|---|---|\n| — | — | — | — | — | — | — |\n| 2026-08-24 | Nourish | Sr | u | r | assessment done | n |\n| 2026-08-25 | Tebra | Sr | u | r | Interview-scheduling | n |\n';
+  const md = '| date | company | role | url | resume | status | follow_up |\n|---|---|---|---|---|---|---|\n| 2026-08-31 | Acme | FS | u | r | submitted | f |\n\n| Date | Company | Role | Source | Resume variant | Status | Next action |\n|---|---|---|---|---|---|---|\n| — | — | — | — | — | — | — |\n| 2026-08-24 | Globex | Sr | u | r | assessment done | n |\n| 2026-08-25 | Initech | Sr | u | r | Interview-scheduling | n |\n';
   const rows = g.parseApplications(md);
-  assert.deepEqual(rows.map(r => [r.company, r.status]), [['LD', 'submitted'], ['Nourish', 'assessment'], ['Tebra', 'interview']]);
+  assert.deepEqual(rows.map(r => [r.company, r.status]), [['Acme', 'submitted'], ['Globex', 'assessment'], ['Initech', 'interview']]);
 });
 
 // ── gates ─────────────────────────────────────────────────────────────────
@@ -252,30 +268,30 @@ test('applications parse handles both tables and skips header rows', () => {
 const stage = (name, type, status, date) => ({ name, type, status, date: date || null, notes: '' });
 
 test('gates: gig offer does not open mewtwo', () => {
-  const r = g.evalGate('offer-full-time', [{ company: 'initech', status: 'offer', employment: 'gig', stages: [] }]);
+  const r = g.evalGate('offer-full-time', [{ company: 'Hooli', status: 'offer', employment: 'gig', stages: [] }]);
   assert.equal(r.open, false);
   assert.match(r.reason, /^No full-time offer yet\./);
-  assert.match(r.reason, /initech's offer is a gig, which does not count\./);
+  assert.match(r.reason, /Hooli's offer is a gig, which does not count\./);
   assert.equal(g.evalGate('offer-full-time', [{ company: 'X', status: 'offer', employment: 'full-time', stages: [] }]).open, true);
 });
 
 test('gates: two rounds keep moltres closed with the count', () => {
-  const p = { company: 'Vandelay', status: 'rejected', employment: 'full-time', stages: [
+  const p = { company: 'Umbrella', status: 'rejected', employment: 'full-time', stages: [
     stage('a', 'assessment', 'passed', '2026-09-24'), stage('b', 'hiring-manager', 'done', '2026-10-07'),
     stage('c', 'recruiter-screen', 'done', '2026-09-22'), stage('d', 'system-design', 'failed') ] };
   const r = g.evalGate('third-round', [p]);
   assert.equal(r.open, false);
-  assert.equal(r.reason, 'Most rounds in one loop: 2 (Vandelay). Needs 3.');
+  assert.equal(r.reason, 'Most rounds in one loop: 2 (Umbrella). Needs 3.');
   p.stages.push(stage('e', 'technical', 'done', '2026-10-09'));
   assert.equal(g.evalGate('third-round', [p]).open, true);
 });
 
 test('gates: rejection with a done assessment opens lavender', () => {
-  const p = { company: 'Hooli', status: 'rejected', employment: 'full-time', stages: [stage('Bryq assessment', 'assessment', 'done', '2026-10-09')] };
+  const p = { company: 'Soylent', status: 'rejected', employment: 'full-time', stages: [stage('Online assessment', 'assessment', 'done', '2026-10-09')] };
   const r = g.evalGate('rejection-past-screen', [p]);
   assert.equal(r.open, true);
-  assert.match(r.reason, /Hooli/);
-  assert.match(r.reason, /Bryq assessment/);
+  assert.match(r.reason, /Soylent/);
+  assert.match(r.reason, /Online assessment/);
   assert.match(r.reason, /2026-10-09/);
   const closed = g.evalGate('rejection-past-screen', [{ ...p, stages: [stage('s', 'recruiter-screen', 'done', '2026-10-09')] }]);
   assert.equal(closed.open, false);
@@ -284,14 +300,14 @@ test('gates: rejection with a done assessment opens lavender', () => {
 
 // ── scout ─────────────────────────────────────────────────────────────────
 
-test('scout picks globex before its screen and acme after', () => {
-  const pipes = g.parsePipelines(path.join(FIX, 'pipeline'), () => {});
+test('scout picks acme before its screen and globex after', () => {
+  const pipes = g.parsePipelines(SAMPLE_PIPELINES, () => {});
   assert.equal(pipes.length, 2);
   const before = g.resolveScout(pipes, '2026-10-14T14:00:00-04:00');
-  assert.equal(before.company, 'Globex');
+  assert.equal(before.company, 'Acme');
   assert.equal(before.track, 'hunt-grind');
   const after = g.resolveScout(pipes, '2026-10-14T16:00:00-04:00');
-  assert.equal(after.company, 'Acme');
+  assert.equal(after.company, 'Globex');
   assert.equal(after.track, 'ai-knowledge');
   assert.equal(after.stageType, 'interview');
   const none = g.resolveScout([], '2026-10-14T16:00:00-04:00');
@@ -300,26 +316,26 @@ test('scout picks globex before its screen and acme after', () => {
 });
 
 test('a priority: top pipeline pins the scout even with nothing dated', () => {
-  const pipes = g.parsePipelines(path.join(FIX, 'pipeline'), () => {});
-  const umbrella = {
-    id: 'umbrella', company: 'Umbrella', status: 'active', priority: 'top', employment: 'full-time', process: [],
+  const pipes = g.parsePipelines(SAMPLE_PIPELINES, () => {});
+  const initech = {
+    id: 'initech', company: 'Initech', status: 'active', priority: 'top', employment: 'full-time', process: [],
     stages: [
       stage('Application submitted', 'application', 'done', '2026-10-15'),
       stage('Recruiter screen', 'recruiter-screen', 'upcoming'),
       stage('Technical interview', 'technical', 'upcoming'),
     ],
   };
-  const r = g.resolveScout([...pipes, umbrella], '2026-10-14T14:00:00-04:00');
-  assert.equal(r.company, 'Umbrella');
+  const r = g.resolveScout([...pipes, initech], '2026-10-14T14:00:00-04:00');
+  assert.equal(r.company, 'Initech');
   assert.equal(r.stage, 'Technical interview');
   assert.equal(r.track, 'subject-knowledge');
   assert.equal(r.priority, true);
-  assert.match(r.reason, /^Top priority: Umbrella/);
-  const dated = { ...umbrella, stages: [...umbrella.stages, stage('Recruiter screen dated', 'recruiter-screen', 'scheduled', '2026-10-20')] };
+  assert.match(r.reason, /^Top priority: Initech/);
+  const dated = { ...initech, stages: [...initech.stages, stage('Recruiter screen dated', 'recruiter-screen', 'scheduled', '2026-10-20')] };
   const d = g.resolveScout([...pipes, dated], '2026-10-14T14:00:00-04:00');
   assert.equal(d.stage, 'Recruiter screen dated');
-  const notTop = g.resolveScout([...pipes, { ...umbrella, priority: '' }], '2026-10-14T14:00:00-04:00');
-  assert.equal(notTop.company, 'Globex');
+  const notTop = g.resolveScout([...pipes, { ...initech, priority: '' }], '2026-10-14T14:00:00-04:00');
+  assert.equal(notTop.company, 'Acme');
 });
 
 test('stage to track mapping', () => {
