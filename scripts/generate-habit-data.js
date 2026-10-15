@@ -11,9 +11,11 @@
 const fs = require('fs');
 const path = require('path');
 
-const SHADOW_ROOT = path.resolve(__dirname, '..', '..');
-const HABITS_DIR = path.join(SHADOW_ROOT, 'vault', 'habits');
-const OUTPUT = path.join(__dirname, '..', 'src', 'assets', 'data', 'habits.json');
+const { requireVault, dataDir } = require('./lib/shadow-paths');
+
+const VAULT = requireVault('generate-habit-data');
+const HABITS_DIR = path.join(VAULT, 'habits');
+const OUTPUT = path.join(dataDir(), 'habits.json');
 
 // ── Habit config ─────────────────────────────────────────────────────────────
 

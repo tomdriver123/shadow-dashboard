@@ -11,9 +11,10 @@
 const fs = require('fs');
 const path = require('path');
 
-const SHADOW_ROOT = path.resolve(__dirname, '..', '..');
-const VAULT = path.join(SHADOW_ROOT, 'vault');
-const OUTPUT = path.join(__dirname, '..', 'src', 'assets', 'data', 'brain.json');
+const { requireVault, dataDir } = require('./lib/shadow-paths');
+
+const VAULT = requireVault('generate-brain-data');
+const OUTPUT = path.join(dataDir(), 'brain.json');
 
 // ── Priority helpers ─────────────────────────────────────────────────────────
 

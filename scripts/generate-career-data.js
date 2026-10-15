@@ -7,6 +7,8 @@
  * metrics for the dashboard Career tab.
  * Outputs src/assets/data/career.json (Tom) and/or
  * src/assets/data/career-sabrina.json (Sabrina). See PERSONS below.
+ * Per-person details (display name, resume PDF filename, hunt dates) live in
+ * vault/projects/job-hunt/career-persons.json, not in this file.
  *
  * Usage:
  *   node scripts/generate-career-data.js                  # all persons (default)
@@ -25,19 +27,27 @@ try {
   process.exit(1);
 }
 
-const SHADOW_ROOT   = path.resolve(__dirname, '..', '..');
+const { requireVault, dataDir } = require('./lib/shadow-paths');
 
-// One entry per person this generator supports. configure() below reads
-// this to populate every path and date constant for a given run.
+const VAULT         = requireVault('generate-career-data');
+// Paths written into the payload (variant PDFs, delta logs) are relative to
+// the directory that holds the vault, e.g. "vault/projects/job-hunt/...".
+const SHADOW_ROOT   = path.dirname(VAULT);
+const PERSONS_FILE  = path.join(VAULT, 'projects', 'job-hunt', 'career-persons.json');
+
+// One entry per person this generator supports: the structural parts only.
+// configure() below reads this to populate every path and feature constant
+// for a given run. The personal parts (displayName, resumePdf, huntStart,
+// lastDay) come from PERSONS_FILE via loadPersonProfile().
 const PERSONS = {
-  tom:     { dir: 'job-hunt',         out: 'career.json',         routeBase: '/tabs/career',    huntStart: '2026-08-12', lastDay: '2026-09-30', resumePdf: 'Thomas-Driver-Resume.pdf', features: { drills: true,  kb: true  } },
-  sabrina: { dir: 'job-hunt-sabrina', out: 'career-sabrina.json', routeBase: '/sabrina/career', huntStart: '2026-09-22', lastDay: null,         resumePdf: 'Sabrina-Resume.pdf',  features: { drills: false, kb: false } },
+  tom:     { dir: 'job-hunt',         out: 'career.json',         routeBase: '/tabs/career',    features: { drills: true,  kb: true  } },
+  sabrina: { dir: 'job-hunt-sabrina', out: 'career-sabrina.json', routeBase: '/sabrina/career', features: { drills: false, kb: false } },
 };
 
 let JOB_HUNT_DIR, DIGEST_DIR, APPLICATIONS_FILE, QUEUE_FILE, PIPELINE_DIR, COMMS_FILE,
     LINKEDIN_VIEWS_FILE, LESSONS_FILE, DRILL_LOG_FILE, KB_LOG_FILE, KB_DIR, RESUME_DIR, VARIANTS_DIR,
     OUTPUT, HUNT_START, LAST_DAY;
-let PERSON, ROUTE_BASE, RESUME_PDF, FEATURES;
+let PERSON, DISPLAY_NAME, ROUTE_BASE, RESUME_PDF, FEATURES;
 
 const POINTS_CONFIG = { perOfficeDay: 30, contractFactor: 0.5, hoursPerYear: 2080 };
 
@@ -57,14 +67,45 @@ function warn(msg) {
   warnings.push(msg);
 }
 
+// Reads the per-person details from PERSONS_FILE, a JSON object keyed by
+// person ("tom", "sabrina") whose values may carry displayName, resumePdf,
+// huntStart (YYYY-MM-DD) and lastDay (YYYY-MM-DD or null). Anything missing,
+// or the whole file being absent, falls back to a generic built-in default so
+// the generator runs on a vault that has never heard of these people.
+function loadPersonProfile(personKey) {
+  const today = new Date().toISOString().slice(0, 10);
+  const profile = {
+    displayName: personKey === 'tom' ? 'Trainer' : personKey.charAt(0).toUpperCase() + personKey.slice(1),
+    resumePdf: 'Resume.pdf',
+    huntStart: today,
+    lastDay: null,
+  };
+  if (!fs.existsSync(PERSONS_FILE)) return profile;
+  let entry;
+  try {
+    entry = JSON.parse(safeReadFile(PERSONS_FILE))[personKey];
+  } catch (err) {
+    warn(`career-persons.json: unreadable (${err.message}); using built-in defaults`);
+    return profile;
+  }
+  if (!entry || typeof entry !== 'object') return profile;
+  for (const key of Object.keys(profile)) {
+    if (entry[key] !== undefined) profile[key] = entry[key];
+  }
+  return profile;
+}
+
 // Populates every path/date/feature constant above for one person. Called
 // once at the top of main() per run. Also clears warnings, since that array
 // is shared module state and a single process run (the default, no args)
 // generates every person in turn.
 function configure(personKey) {
   const p = PERSONS[personKey];
+  warnings.length = 0;
+  const profile = loadPersonProfile(personKey);
   PERSON       = personKey;
-  JOB_HUNT_DIR = path.join(SHADOW_ROOT, 'vault', 'projects', p.dir);
+  DISPLAY_NAME = profile.displayName;
+  JOB_HUNT_DIR = path.join(VAULT, 'projects', p.dir);
   DIGEST_DIR   = path.join(JOB_HUNT_DIR, 'digest');
   APPLICATIONS_FILE   = path.join(JOB_HUNT_DIR, 'applications.md');
   QUEUE_FILE          = path.join(DIGEST_DIR, 'queue.md');
@@ -77,13 +118,12 @@ function configure(personKey) {
   KB_DIR              = path.join(JOB_HUNT_DIR, 'interview-prep', 'kb');
   RESUME_DIR          = path.join(JOB_HUNT_DIR, 'resume');
   VARIANTS_DIR        = path.join(RESUME_DIR, 'variants');
-  OUTPUT     = path.join(__dirname, '..', 'src', 'assets', 'data', p.out);
-  HUNT_START = p.huntStart;
-  LAST_DAY   = p.lastDay;
+  OUTPUT     = path.join(dataDir(), p.out);
+  HUNT_START = profile.huntStart;
+  LAST_DAY   = profile.lastDay;
   ROUTE_BASE = p.routeBase;
-  RESUME_PDF = p.resumePdf;
+  RESUME_PDF = profile.resumePdf;
   FEATURES   = p.features;
-  warnings.length = 0;
 }
 
 // ── Generic helpers ───────────────────────────────────────────────────────
@@ -680,7 +720,7 @@ function crossCheckPipelineCoverage(applications, pipeline) {
   const pipelineById = new Map(pipeline.map(p => [p.id, p]));
   const claimed = new Set();
 
-  // First token of the company name ("Acme Freight (via S3)" -> "acme-freight"),
+  // First token of the company name ("Acme Widgets Inc (via Staffing Co)" -> "acme"),
   // used as a fallback key for recruiter sourced rows that never had a queue id.
   const companyKey = s => String(s || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').trim().split(/\s+/)[0] || '';
   const words = s => new Set(String(s || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(w => w.length > 2));
@@ -1685,7 +1725,7 @@ function buildContext(now) {
     daysToLastDay = Math.floor((lastDayDate - today) / 86400000);
     lastDay = LAST_DAY;
   }
-  return { person: PERSON, huntStart: HUNT_START, huntDay, lastDay, daysToLastDay };
+  return { person: PERSON, displayName: DISPLAY_NAME, huntStart: HUNT_START, huntDay, lastDay, daysToLastDay };
 }
 
 function computeKpis(applications, queue, pipeline, schedule, drills, needsYou, metrics, now) {

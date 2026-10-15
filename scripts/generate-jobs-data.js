@@ -12,10 +12,12 @@
 const fs = require('fs');
 const path = require('path');
 
-const SHADOW_ROOT = path.resolve(__dirname, '..', '..');
-const DIGEST_DIR  = path.join(SHADOW_ROOT, 'vault', 'projects', 'job-hunt', 'digest');
+const { requireVault, dataDir } = require('./lib/shadow-paths');
+
+const VAULT       = requireVault('generate-jobs-data');
+const DIGEST_DIR  = path.join(VAULT, 'projects', 'job-hunt', 'digest');
 const QUEUE_FILE  = path.join(DIGEST_DIR, 'queue.md');
-const OUTPUT      = path.join(__dirname, '..', 'src', 'assets', 'data', 'jobs.json');
+const OUTPUT      = path.join(dataDir(), 'jobs.json');
 
 // ── Queue parser ──────────────────────────────────────────────────────────────
 

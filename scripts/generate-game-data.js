@@ -14,8 +14,8 @@
 const fs = require('fs');
 const path = require('path');
 const yaml = require('js-yaml');
+const { requireVault, dataDir } = require('./lib/shadow-paths');
 
-const SHADOW_ROOT = path.resolve(__dirname, '..', '..');
 const DEX_CAP = 151;
 
 const TRACKS = {
@@ -910,13 +910,17 @@ async function build(opts) {
 // ── main ──────────────────────────────────────────────────────────────────
 
 function parseArgs(argv) {
-  const o = { vaultDir: path.join(SHADOW_ROOT, 'vault'), outDir: path.join(SHADOW_ROOT, 'dashboard', 'src', 'assets', 'data'), offline: false, now: null };
+  const o = { vaultDir: null, outDir: null, offline: false, now: null };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--vault') o.vaultDir = path.resolve(argv[++i]);
     else if (argv[i] === '--out') o.outDir = path.resolve(argv[++i]);
     else if (argv[i] === '--offline') o.offline = true;
     else if (argv[i] === '--now') o.now = argv[++i];
   }
+  // Defaults come from the shared path helper, resolved here (not at module
+  // load) so requiring this file from a test never exits the process.
+  if (!o.vaultDir) o.vaultDir = requireVault('generate-game-data');
+  if (!o.outDir) o.outDir = dataDir();
   return o;
 }
 

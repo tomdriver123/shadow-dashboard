@@ -42,11 +42,14 @@ const path = require('path');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
 
+const { requireVault, dataDir } = require('../scripts/lib/shadow-paths');
+
 const execFileAsync = promisify(execFile);
 
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.VAULT_API_PORT || process.env.FEEDBACK_API_PORT) || 4201;
-const VAULT = process.env.SHADOW_VAULT_DIR || path.resolve(__dirname, '..', '..', 'vault');
+// SHADOW_VAULT_DIR / SHADOW_ROOT / the in-tree layout, resolved by the shared helper.
+const VAULT = requireVault('vault-api');
 const ROOT = path.join(VAULT, 'feedback');
 const AUTHORS = ['tom', 'sabrina'];
 
@@ -84,7 +87,7 @@ const MAX_QUIZ_BODY_BYTES = 4096;
 // backs launchd and the CLI. This API only starts a run and reports on it;
 // the "how to refresh X" logic lives entirely in that script.
 
-const DATA_DIR = process.env.SHADOW_DATA_DIR || path.resolve(__dirname, '..', 'src', 'assets', 'data');
+const DATA_DIR = dataDir();
 const REFRESH_SCRIPT = path.resolve(__dirname, '..', 'scripts', 'refresh.js');
 const REFRESH_STATE = path.join(DATA_DIR, 'refresh.json');
 const REFRESH_TARGETS = ['finance', 'habits', 'career', 'game', 'jobs', 'brain', 'agents', 'all'];

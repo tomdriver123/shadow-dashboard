@@ -11,10 +11,12 @@
 const fs = require('fs');
 const path = require('path');
 
-const SHADOW_ROOT = path.resolve(__dirname, '..', '..');
-const FINANCE_DIR = path.join(SHADOW_ROOT, 'vault', 'finance');
+const { requireVault, dataDir } = require('./lib/shadow-paths');
+
+const VAULT = requireVault('generate-finance-data');
+const FINANCE_DIR = path.join(VAULT, 'finance');
 const BALANCES_FILE = path.join(FINANCE_DIR, 'balances.md');
-const OUTPUT = path.join(__dirname, '..', 'src', 'assets', 'data', 'finance.json');
+const OUTPUT = path.join(dataDir(), 'finance.json');
 
 // ── Merchant → category remap ────────────────────────────────────────────────
 

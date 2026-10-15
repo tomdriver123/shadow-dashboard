@@ -47,26 +47,54 @@ const path = require('path');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
 
+const { shadowRoot, vaultDir, dataDir, requireVault } = require('./lib/shadow-paths');
+
 const execFileAsync = promisify(execFile);
 
 // ── paths and constants ───────────────────────────────────────────────────
 
-const ROOT = path.resolve(__dirname, '..', '..');
-const DATA_DIR = path.join(ROOT, 'dashboard', 'src', 'assets', 'data');
+// Refreshing needs a vault, so a missing or misconfigured one stops the CLI
+// here with a clear message (exit 2). This module is also required by tests
+// and tools that only want the exports, so the check is a no-op unless this
+// file is the entry point.
+const VAULT = require.main === module ? requireVault('refresh') : vaultDir();
+// The shadow repo root: python steps run from here and find vault/ beneath
+// it. With only SHADOW_VAULT_DIR set it is the directory above that vault.
+const ROOT = shadowRoot() || (VAULT ? path.dirname(VAULT) : null);
+const DATA_DIR = dataDir();
 const STATE_FILE = path.join(DATA_DIR, 'refresh.json');
 const LOCK_DIR = path.join(os.tmpdir(), 'shadow-refresh');
 
-const PLAID_DIR = path.join(ROOT, 'vault', 'tools', 'plaid');
+// ROOT is null only when this file is required (not run) on a machine with no
+// vault; runRefresh() refuses to start in that case, so these never get used.
+const PLAID_DIR = path.join(ROOT || '', 'vault', 'tools', 'plaid');
 const PLAID_PY = path.join(PLAID_DIR, '.venv', 'bin', 'python');
 const PY311 = '/usr/local/bin/python3.11';
-const HABITS_PY = path.join(ROOT, 'vault', 'habits', 'sync-habits.py');
+const HABITS_PY = path.join(ROOT || '', 'vault', 'habits', 'sync-habits.py');
 const NODE = process.execPath;
 
-// Copied from vault/tools/launchd/job-scan.sh: launchd runs with a minimal
-// PATH, so a step needs somewhere to fall back to when process.env.PATH is
-// empty (as it is under launchd, unlike an interactive shell).
-const LAUNCHD_PATH =
-  '/usr/local/Cellar/node@24/24.14.1_1/bin:/Users/tom/.local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin';
+// launchd runs with a minimal PATH, so a step needs somewhere to fall back
+// to when process.env.PATH is empty (as it is under launchd, unlike an
+// interactive shell). The directory of the running node always leads, so a
+// child that shells out to `node` gets the same node as this process.
+// SHADOW_EXTRA_PATH (a PATH style list) replaces the default ~/.local/bin
+// entry and, when set, is also appended to a PATH that was passed in.
+function childPath() {
+  const nodeDir = path.dirname(process.execPath);
+  const extra = (process.env.SHADOW_EXTRA_PATH || path.join(os.homedir(), '.local', 'bin')).split(path.delimiter);
+  const system = ['/usr/local/bin', '/usr/bin', '/bin', '/usr/sbin', '/sbin'];
+  const base = process.env.PATH ? process.env.PATH.split(path.delimiter) : [...extra, ...system];
+  const dirs = process.env.SHADOW_EXTRA_PATH ? [...base, ...extra] : base;
+  return [...new Set([nodeDir, ...dirs.filter(Boolean)])].join(path.delimiter);
+}
+
+// Children get the same SHADOW_ROOT this process resolved, so a generator can
+// never disagree with the orchestrator about where the vault is.
+function childEnv() {
+  const env = { ...process.env, PATH: childPath() };
+  if (ROOT) env.SHADOW_ROOT = ROOT;
+  return env;
+}
 
 const STALE_LOCK_MS = 15 * 60 * 1000;
 const TAIL_CHARS = 500;
@@ -151,7 +179,7 @@ async function runStep(step) {
       cwd: step.cwd,
       timeout: step.timeoutMs,
       maxBuffer: 4 * 1024 * 1024,
-      env: { ...process.env, PATH: process.env.PATH || LAUNCHD_PATH },
+      env: childEnv(),
     });
     return { name: step.name, ok: true, ms: Date.now() - start, optional: !!step.optional, tail: computeTail(stdout, stderr) };
   } catch (err) {
@@ -322,6 +350,7 @@ async function runRefresh(target, options = {}) {
     throw new Error(`invalid person: ${options.person}`);
   }
   const opts = { sync: !!options.sync, person: options.person };
+  if (!ROOT) throw new Error('no vault found. Set SHADOW_ROOT (or SHADOW_VAULT_DIR).');
 
   if (target === 'all') {
     const allLock = acquireLock('all');

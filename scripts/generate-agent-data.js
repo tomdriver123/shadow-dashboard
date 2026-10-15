@@ -4,9 +4,13 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const SHADOW_ROOT = path.resolve(__dirname, '..', '..');
+const { requireVault, shadowRoot, dataDir } = require('./lib/shadow-paths');
+
+const VAULT = requireVault('generate-agent-data');
+// agents/<id>/AGENTS.md lives beside vault/, in the shadow repo root.
+const SHADOW_ROOT = shadowRoot() || path.dirname(VAULT);
 const OPENCLAW_CONFIG = path.join(os.homedir(), '.openclaw', 'openclaw.json');
-const OUTPUT = path.join(__dirname, '..', 'src', 'assets', 'data', 'agents.json');
+const OUTPUT = path.join(dataDir(), 'agents.json');
 const AVATARS_DIR = path.join(__dirname, '..', 'src', 'assets', 'images', 'avatars');
 const AGENT_META_PATH = path.join(__dirname, 'agent-meta.json');
 
@@ -87,7 +91,7 @@ function main() {
     // Find AGENTS.md - shadow's is in vault/, others in agents/{id}/
     let agentsMdPath;
     if (id === 'shadow') {
-      agentsMdPath = path.join(SHADOW_ROOT, 'vault', 'AGENTS.md');
+      agentsMdPath = path.join(VAULT, 'AGENTS.md');
     } else {
       agentsMdPath = path.join(SHADOW_ROOT, 'agents', id, 'AGENTS.md');
     }
