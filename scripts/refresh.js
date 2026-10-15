@@ -92,7 +92,13 @@ function childPath() {
 // never disagree with the orchestrator about where the vault is.
 function childEnv() {
   const env = { ...process.env, PATH: childPath() };
-  if (ROOT) env.SHADOW_ROOT = ROOT;
+  // Only a real shadow root is exported; a vault given on its own (sample mode) has
+  // no root to pass on, and a bogus SHADOW_ROOT would make every child throw.
+  const realRoot = shadowRoot();
+  if (realRoot) env.SHADOW_ROOT = realRoot;
+  // Children may run from a different cwd, so the vault and data dirs go out absolute.
+  if (VAULT) env.SHADOW_VAULT_DIR = VAULT;
+  env.SHADOW_DATA_DIR = DATA_DIR;
   return env;
 }
 

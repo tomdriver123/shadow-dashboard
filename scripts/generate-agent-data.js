@@ -69,8 +69,9 @@ function main() {
   try {
     openclawConfig = JSON.parse(fs.readFileSync(OPENCLAW_CONFIG, 'utf-8'));
   } catch (err) {
-    console.error('Could not read openclaw config:', err.message);
-    process.exit(1);
+    // No OpenClaw install (a fresh clone, sample mode): an empty roster is the honest output.
+    console.error('No openclaw config, writing an empty roster:', err.message);
+    openclawConfig = {};
   }
 
   const agentList = openclawConfig.agents?.list || [];
