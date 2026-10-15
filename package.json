@@ -14,7 +14,8 @@
     "lint": "ng lint",
     "refresh": "node scripts/refresh.js",
     "test:scripts": "node --test \"scripts/test/*.test.js\"",
-    "refresh:all": "node scripts/refresh.js all --sync"
+    "refresh:all": "node scripts/refresh.js all --sync",
+    "sample": "SHADOW_VAULT_DIR=scripts/test/fixtures/sample-vault SHADOW_DATA_DIR=src/assets/data node scripts/refresh.js all"
   },
   "private": true,
   "dependencies": {
