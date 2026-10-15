@@ -386,6 +386,7 @@ function parsePipelines(dir, warn) {
       id: data.id ? String(data.id) : path.basename(file, '.md'),
       company: String(data.company),
       status: String(data.status || '').toLowerCase(),
+      priority: String(data.priority || '').toLowerCase(),
       employment: String(data.employment || '').toLowerCase(),
       process: Array.isArray(data.process) ? data.process.map(String) : [],
       stages: (Array.isArray(data.stages) ? data.stages : []).filter(s => s && typeof s === 'object' && s.name && s.type).map(s => ({
@@ -681,12 +682,33 @@ function trackForStage(stage) {
   }
 }
 
+// A pipeline with `priority: top` in its frontmatter (Tom's call, see GOAL.md
+// rule 1) pins the scout town to its lane: its nearest dated open stage wins,
+// else its first open round (not a recruiter screen), else any open stage.
+function priorityPick(active, nowMs) {
+  const open = s => ['scheduled', 'upcoming'].includes(s.status);
+  const isRound = s => s.type !== 'recruiter-screen';
+  for (const p of active) {
+    if (p.priority !== 'top') continue;
+    let dated = null;
+    for (const s of p.stages) {
+      if (!open(s) || !s.date) continue;
+      const end = stageEnd(s.date);
+      if (end !== null && end > nowMs && (!dated || end < dated.end)) dated = { p, s, end };
+    }
+    if (dated) return dated;
+    const s = p.stages.find(x => open(x) && isRound(x)) || p.stages.find(open);
+    if (s) return { p, s, priority: true };
+  }
+  return null;
+}
+
 function resolveScout(pipelines, now) {
   const nowMs = now instanceof Date ? now.getTime() : Date.parse(now);
   const active = pipelines.filter(p => p.status === 'active');
   const open = s => ['scheduled', 'upcoming'].includes(s.status);
-  let pick = null;
-  for (const p of active) {
+  let pick = priorityPick(active, nowMs);
+  for (const p of pick ? [] : active) {
     for (const s of p.stages) {
       if (!open(s) || !s.date) continue;
       const end = stageEnd(s.date);
@@ -708,7 +730,8 @@ function resolveScout(pipelines, now) {
   const track = trackForStage(pick.s);
   return {
     track, trackLabel: trackLabel(track), company: pick.p.company, stage: pick.s.name, stageType: pick.s.type,
-    date: pick.s.date, reason: `Next round: ${pick.p.company}, ${pick.s.name}${pick.s.date ? ` on ${pick.s.date}` : ' (not yet scheduled)'}`,
+    date: pick.s.date, priority: pick.p.priority === 'top',
+    reason: `${pick.p.priority === 'top' ? 'Top priority' : 'Next round'}: ${pick.p.company}, ${pick.s.name}${pick.s.date ? ` on ${pick.s.date}` : ' (not yet scheduled)'}`,
   };
 }
 

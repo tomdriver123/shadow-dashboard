@@ -299,6 +299,29 @@ test('scout picks globex before its screen and acme after', () => {
   assert.equal(none.reason, 'Nothing scheduled; Viridian serves subject knowledge');
 });
 
+test('a priority: top pipeline pins the scout even with nothing dated', () => {
+  const pipes = g.parsePipelines(path.join(FIX, 'pipeline'), () => {});
+  const umbrella = {
+    id: 'umbrella', company: 'Umbrella', status: 'active', priority: 'top', employment: 'full-time', process: [],
+    stages: [
+      stage('Application submitted', 'application', 'done', '2026-10-15'),
+      stage('Recruiter screen', 'recruiter-screen', 'upcoming'),
+      stage('Technical interview', 'technical', 'upcoming'),
+    ],
+  };
+  const r = g.resolveScout([...pipes, umbrella], '2026-10-14T14:00:00-04:00');
+  assert.equal(r.company, 'Umbrella');
+  assert.equal(r.stage, 'Technical interview');
+  assert.equal(r.track, 'subject-knowledge');
+  assert.equal(r.priority, true);
+  assert.match(r.reason, /^Top priority: Umbrella/);
+  const dated = { ...umbrella, stages: [...umbrella.stages, stage('Recruiter screen dated', 'recruiter-screen', 'scheduled', '2026-10-20')] };
+  const d = g.resolveScout([...pipes, dated], '2026-10-14T14:00:00-04:00');
+  assert.equal(d.stage, 'Recruiter screen dated');
+  const notTop = g.resolveScout([...pipes, { ...umbrella, priority: '' }], '2026-10-14T14:00:00-04:00');
+  assert.equal(notTop.company, 'Globex');
+});
+
 test('stage to track mapping', () => {
   const s = (type, name, notes) => ({ type, name, notes: notes || '' });
   assert.equal(g.trackForStage(s('technical', 'x')), 'subject-knowledge');
