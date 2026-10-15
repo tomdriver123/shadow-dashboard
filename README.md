@@ -17,6 +17,26 @@ Markdown vault  -->  scripts/generate-*-data.js  -->  src/assets/data/*.json  --
 - **Write-back through the API.** Quiz attempts, feedback entries and queue verdicts are appended to vault Markdown atomically, then the affected JSON is regenerated.
 - **Generated JSON is never committed.** `src/assets/data/` is gitignored; `npm run sample` fills it from the committed sample set.
 
+## Screenshots
+
+All captures come from the committed sample vault, so every name and number is invented.
+
+![Home tab on desktop with a Needs You list and two pipeline cards](docs/screenshots/home.png)
+
+The home tab on desktop, showing what needs attention next and the active pipeline.
+
+![Habits tab with six habit cards and a points trend chart](docs/screenshots/habits.png)
+
+The habits tab, with a daily points total, one card per habit and a trend chart.
+
+![Career tab with application, interview and drill tiles](docs/screenshots/career.png)
+
+The career tab, a row of tiles summarizing the job hunt and interview prep.
+
+<img src="docs/screenshots/home-phone.png" alt="Home tab on a phone screen" width="260">
+
+The same home tab on a phone, where the sidebar collapses into a bottom tab bar.
+
 ## Stack
 
 Angular 20, Ionic 8, Capacitor 8, TypeScript 5.9, NgModules, SCSS, Leaflet for the map pages, ngx-markdown for rendered answers. A single-file Node API server with zero npm dependencies.
